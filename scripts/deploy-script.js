@@ -2,24 +2,46 @@ const hre = require("hardhat");
 
 async function main() {
 
-  const token = await token() 
-  
+
+  //部署第一个petToken
+  const pet = await petToken() 
+  const egg = await eggToken()
+
+  const core = await mainCore()
+  const eggMng = await eggManager()
+
+
+
 }
 
+async function deployContract( contractName , ... args ) {
+  const Entity = await hre.ethers.getContractFactory( contractName )
+  const entity = await Entity.deploy( ...args )
 
-async function token() {
-  const NullsPet = await hre.ethers.getContractFactory("NullsPet")
-  const pet = await NullsPet.deploy()
+  await entity.deployed()
 
-  await pet.deployed()
+  console.log(` ${contractName} deployed to : ${entity.address} ${args}`)
 
-  console.log(`NullsPet deployed to : ${pet.address}`)
-
-  return pet 
+  return entity 
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
+async function mainCore() {
+  const router = ""   // Router address
+  deployContract("NullsWorldCore" , router )
+}
+
+async function eggManager(){
+  deployContract("NullsEggManager")
+}
+
+async function petToken() {
+  deployContract("NullsPetToken")
+}
+
+async function eggToken() {
+  deployContract("NullsEggToken")
+}
+
 main()
   .then(() => process.exit(0))
   .catch((error) => {
