@@ -13,7 +13,7 @@ contract NullsWorldCore is IOnlineGame, Ownable {
     uint256 GameId;
     mapping(uint256 => uint256) Items;      // itemId -> sceneId 
     mapping(uint256 => address ) Scenes ;   // sceneId -> proxyAddress
-    bool GameStatus = false;
+    bool GameStatus = true;
 
     constructor(address router) {
         OnlineRouter = IOnlineRouter(router);
@@ -25,7 +25,6 @@ contract NullsWorldCore is IOnlineGame, Ownable {
             gameName,
             address(this)
         );
-        GameStatus = true;
     }
 
     function newScene( address addr , string memory name ) external onlyOwner returns (uint sceneId) {
