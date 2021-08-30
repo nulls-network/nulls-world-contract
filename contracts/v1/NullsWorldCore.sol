@@ -28,8 +28,8 @@ contract NullsWorldCore is IOnlineGame, Ownable {
         GameStatus = true;
     }
 
-    function newScene( address addr , string memory name ) external onlyOwner {
-        uint sceneId = OnlineRouter.addScene(GameId, name);
+    function newScene( address addr , string memory name ) external onlyOwner returns (uint sceneId) {
+        sceneId = OnlineRouter.addScene(GameId, name);
         require( IOnlineGame(addr).test() , "NullsWorldCore/Need to extend IOnlineGame.sol " ) ;
         Scenes[sceneId] = addr ;
     }
@@ -37,8 +37,8 @@ contract NullsWorldCore is IOnlineGame, Ownable {
     function newItem(
         uint256 sceneId,
         address pubkey
-    ) external onlyOwner {
-        uint256 itemId = OnlineRouter.addItem(sceneId, pubkey);
+    ) external onlyOwner returns (uint256 itemId) {
+        itemId = OnlineRouter.addItem(sceneId, pubkey);
         Items[itemId] = sceneId;
     }
 
