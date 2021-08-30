@@ -80,11 +80,22 @@ contract NullsWorldCore is IOnlineGame, Ownable {
     function notify(
         uint256 item,
         address player,
-        bytes memory rv
+        bytes32 rv
     ) external override returns (bool) {
         uint sceneId = Items[item] ;
         address sceneAddr = Scenes[sceneId] ;
         return IOnlineGame(sceneAddr).notify(item, player, rv);
+    }
+
+    function play(
+        uint256 itemId,
+        bytes32 hv,
+        uint256 deadline,
+        uint8[] calldata vs,
+        bytes32[] calldata rs,
+        bytes32[] calldata ss
+    ) external override returns (address player, bytes32 rv) { 
+        (player, rv) =OnlineRouter.play(itemId, hv, deadline, vs, rs, ss);
     }
 
 }

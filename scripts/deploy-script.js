@@ -4,11 +4,11 @@ async function main() {
 
 
   //部署第一个petToken
-  // const pet = await petToken() 
-  // const egg = await eggToken()
+  const pet = await petToken() 
+  const egg = await eggToken()
 
   const core = await mainCore()
-  // const eggMng = await eggManager()
+  const eggMng = await eggManager()
 
 
 
@@ -26,7 +26,7 @@ async function deployContract( contractName , ... args ) {
 }
 
 async function mainCore() {
-  const router = "0xd1B60bcfc36fb062F08cb0430958C1bcC726812A"   // Router address
+  const router = "0x47817fc2806e890109653FCeFFBD9ccfB2582C04"   // Router address
   await deployContract("NullsWorldCore" , router )
 }
 

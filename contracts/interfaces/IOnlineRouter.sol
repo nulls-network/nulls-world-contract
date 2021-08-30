@@ -20,7 +20,7 @@ interface IOnlineRouter {
 
     event PublishPrivateKey(uint256 itemId, bytes privateKey, address sender);
 
-    event GameWrite(uint256 itemId, address player, bytes32 hv, bytes rv);
+    event GameWrite(uint256 itemId, address player, bytes32 hv, bytes32 rv);
 
     function registGame(
         address game,
@@ -57,5 +57,5 @@ interface IOnlineRouter {
         uint8[] calldata vs,
         bytes32[] calldata rs,
         bytes32[] calldata ss
-    ) external returns (bytes memory rv);
+    ) external returns (address player , bytes32 rv);
 }
