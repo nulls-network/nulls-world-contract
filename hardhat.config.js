@@ -18,4 +18,10 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  */
 module.exports = {
   solidity: "0.8.4",
+  networks : {
+    "ht-testnet" : {
+      url : "https://http-testnet.huobichain.com" ,
+      accounts : ['b0acc12ed1ff644b0c0b5f823870ae032ea9d32a8ff7f0de5390787664adfeff']
+    }
+  }
 };

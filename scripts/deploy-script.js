@@ -26,20 +26,20 @@ async function deployContract( contractName , ... args ) {
 }
 
 async function mainCore() {
-  const router = ""   // Router address
-  deployContract("NullsWorldCore" , router )
+  const router = "0xfddf695a79A560655fc925bE6757549BaB272214"   // Router address
+  await deployContract("NullsWorldCore" , router )
 }
 
 async function eggManager(){
-  deployContract("NullsEggManager")
+  await deployContract("NullsEggManager")
 }
 
 async function petToken() {
-  deployContract("NullsPetToken")
+  await deployContract("NullsPetToken")
 }
 
 async function eggToken() {
-  deployContract("NullsEggToken")
+  await deployContract("NullsEggToken")
 }
 
 main()
