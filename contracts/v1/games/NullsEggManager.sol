@@ -26,7 +26,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
 
     bool IsOk = false;
 
-    event NewPet( uint batchIndex , uint item , address player , uint v , bytes32 rv ) ;
+    event NewPet(uint petid, uint batchIndex , uint item , address player , uint v , bytes32 rv ) ;
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
@@ -91,7 +91,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         petid = INullsPetToken( PetToken ).mint( player , tv ) ;
 
         //emit Open
-        emit NewPet( index , item, player, tv , rv);
+        emit NewPet(petid, index , item, player, tv , rv);
     }
 
     // approve -> transferFrom
