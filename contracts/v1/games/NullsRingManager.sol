@@ -12,6 +12,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
     address Proxy = address(0);
     address PetToken = address(0);
     bool IsOk = false;
+    uint SceneId ;
 
     // 普通宠物休息时间（秒）
     uint GeneralPetRestTime = 300;
@@ -110,11 +111,12 @@ contract NullsRingManager is IOnlineGame, Ownable {
     // 需要预先创建擂台PK场景
     // 返回擂台ID(item ID)
     function createRing(
-        address creator,
         uint petId, 
         address token,
         uint8 multiple,
-        uint256 sceneId,
+        uint8 v , 
+        bytes32 r , 
+        bytes32 s ,
         address pubkey ) external onlyOwner returns(uint256 itemId) {
 
             // 是否在守擂中
@@ -133,7 +135,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
             // 转出擂台启动资金
             IERC20( token ).transferFrom( creator, address(this) , initialCapital );
             // 创建item
-            itemId = INullsWorldCore(Proxy).newItem(sceneId, pubkey);
+            itemId = INullsWorldCore(Proxy).newItem( SceneId , pubkey );
 
             // 记录擂台信息
             Rings[itemId] = Ring({
