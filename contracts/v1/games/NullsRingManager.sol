@@ -15,16 +15,12 @@ contract NullsRingManager is IOnlineGame, Ownable {
 
     // 普通宠物休息时间（秒）
     uint GeneralPetRestTime = 300;
-
-    // god宠物休息时间
-    uint GodPetRestTime = 300;
  
     // 支持的token列表
     mapping( address => RingTokenConfig ) RingTokens;
 
     // 记录上次挑战时间
     // 对于普通宠物: 上次挑战时间
-    // 对于开擂台宠物: 上个擂台结束时间
     mapping( uint => uint) public LastChallengeTime;
 
     struct RingTokenConfig {
@@ -47,9 +43,9 @@ contract NullsRingManager is IOnlineGame, Ownable {
         uint ticketAmt ;
         // 初始资金
         uint initialCapital;
-        // 倍率，1/2
-        // 1: 启动资金为配置的最小启动资金
-        // 2: 擂台启动资金为最小启动资金*2
+        // 倍率，5/10
+        // 5: 启动资金为配置的最小启动资金
+        // 10: 擂台启动资金为最小启动资金*2
         uint8 multiple;
         // 创建者
         address creater;
@@ -71,15 +67,14 @@ contract NullsRingManager is IOnlineGame, Ownable {
 
 
     // 设置休息时间
-    function setRestTime( uint generalPetRestTime, uint godPetRestTime) external onlyOwner {
+    function setRestTime( uint generalPetRestTime) external onlyOwner {
         GeneralPetRestTime = generalPetRestTime;
-        GodPetRestTime = godPetRestTime;
     }
 
 
     // 获取休息时间配置
-    function getRestTime() public view returns(uint generalPetRestTime, uint godPetRestTime){
-        return (GeneralPetRestTime, GodPetRestTime);
+    function getRestTime() public view returns(uint generalPetRestTime){
+        return GeneralPetRestTime;
     }
 
     // 添加支持的代币
@@ -110,15 +105,17 @@ contract NullsRingManager is IOnlineGame, Ownable {
     }
 
   
+    // 服务端调用此接口创建擂台，在调用接口前，服务端需要判断客户端的签名是否正确
     // 创建擂台,擂台创建时自动创建一个Item
     // 需要预先创建擂台PK场景
     // 返回擂台ID(item ID)
     function createRing(
+        address creator,
         uint petId, 
         address token,
         uint8 multiple,
         uint256 sceneId,
-        address pubkey ) external returns(uint256 itemId) {
+        address pubkey ) external onlyOwner returns(uint256 itemId) {
 
             // 是否在守擂中
             bool isLocked = PetLocked[petId] ;
@@ -130,11 +127,11 @@ contract NullsRingManager is IOnlineGame, Ownable {
             require(multiple == 5 || multiple== 10, "NullsRingManager/Unsupported multiple.");
 
             // 检查petId是否合法
-            require(INullsPetToken( PetToken ).ownerOf(petId) == msg.sender, "NullsRingManager/Pet id is illegal");
+            require(INullsPetToken( PetToken ).ownerOf(petId) == creator, "NullsRingManager/Pet id is illegal");
             require(INullsPetToken( PetToken ).Types(petId) == 0xff, "NullsRingManager/Pets do not have the ability to open the ring");
             uint initialCapital = RingTokens[token].minInitialCapital * multiple;
-            // 转出擂台启动资金: 设置的最小启动资金 * 倍率
-            IERC20( token ).transferFrom( msg.sender, address(this) , initialCapital );
+            // 转出擂台启动资金
+            IERC20( token ).transferFrom( creator, address(this) , initialCapital );
             // 创建item
             itemId = INullsWorldCore(Proxy).newItem(sceneId, pubkey);
 
@@ -145,7 +142,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
                 initialCapital: initialCapital,
                 ticketAmt : RingTokens[token].minInitialCapital ,
                 multiple: multiple,
-                creater: msg.sender,
+                creater: creator,
                 bonusPool: initialCapital,
                 ownerBonus: 0,
                 gameOperatorBonus: 0,
@@ -153,7 +150,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
             });
 
             PetLocked[petId] = true ;            
-            emit NewRing(itemId, petId, token, initialCapital, msg.sender, multiple);
+            emit NewRing(itemId, petId, token, initialCapital, creator, multiple);
     }
 
     function getRewardRatio(uint total) internal pure returns(uint8 ringPool, uint8 ringOwner, uint8 gameOperator) {
@@ -213,6 +210,9 @@ contract NullsRingManager is IOnlineGame, Ownable {
                 // ring.gameOperatorBonus = 0;
                 IERC20( ring.token ).transfer( owner() , ring.gameOperatorBonus); 
                 ring.gameOperatorBonus = 0;
+
+                // 解锁守擂宠物
+                PetLocked[ring.petId] = false ;
 
                 emit RingUpdate(itemId, challengerPetId, player, 0, rv, true, ring.bonusPool);
                 ring.bonusPool = 0;     
