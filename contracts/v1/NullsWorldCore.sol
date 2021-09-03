@@ -15,8 +15,16 @@ contract NullsWorldCore is IOnlineGame, Ownable {
     mapping(uint256 => address ) Scenes ;   // sceneId -> proxyAddress
     bool GameStatus = true;
 
+    // newItem白名单
+    mapping(address => bool) newItemWhiteList;
+
     constructor(address router) {
         OnlineRouter = IOnlineRouter(router);
+    }
+
+    // 设置允许哪些合约地址调用newItem接口
+    function addNewItemWhiteList(address user) external onlyOwner {
+        newItemWhiteList[user] = true;
     }
 
     function registerGame(string memory gameName) external onlyOwner {
@@ -33,10 +41,16 @@ contract NullsWorldCore is IOnlineGame, Ownable {
         Scenes[sceneId] = addr ;
     }
 
+    modifier onlyOwnerOrWhiteList() {
+        require(owner() == _msgSender() || newItemWhiteList[_msgSender()] == true, "Ownable: caller is not the owner or white list");
+        _;
+    }
+
+    //  合约owner、newItemWhiteList可以调用此接口创建item
     function newItem(
         uint256 sceneId,
         address pubkey
-    ) external onlyOwner returns (uint256 itemId) {
+    ) external onlyOwnerOrWhiteList returns (uint256 itemId) {
         itemId = OnlineRouter.addItem(sceneId, pubkey);
         Items[itemId] = sceneId;
     }
