@@ -6,6 +6,7 @@ import "../interfaces/IOnlineRouter.sol";
 import "../utils/Ownable.sol";
 
 contract NullsWorldCore is IOnlineGame, Ownable {
+    event NewGameItem( uint sceneId , uint itemId , address pubkey , address sender) ;
     // random oracle
     address RandomOracle;
     IOnlineRouter OnlineRouter;
@@ -17,6 +18,11 @@ contract NullsWorldCore is IOnlineGame, Ownable {
 
     // newItem白名单
     mapping(address => bool) newItemWhiteList;
+
+    modifier onlyOwnerOrWhiteList() {
+        require(owner() == _msgSender() || newItemWhiteList[_msgSender()] == true, "Ownable: caller is not the owner or white list");
+        _;
+    }
 
     constructor(address router) {
         OnlineRouter = IOnlineRouter(router);
@@ -35,16 +41,12 @@ contract NullsWorldCore is IOnlineGame, Ownable {
         );
     }
 
-    function newScene( address addr , string memory name ) external onlyOwner returns (uint sceneId) {
+    function newScene( address addr , string memory name ) external onlyOwnerOrWhiteList returns (uint sceneId) {
         sceneId = OnlineRouter.addScene(GameId, name);
         require( IOnlineGame(addr).test() , "NullsWorldCore/Need to extend IOnlineGame.sol " ) ;
         Scenes[sceneId] = addr ;
     }
 
-    modifier onlyOwnerOrWhiteList() {
-        require(owner() == _msgSender() || newItemWhiteList[_msgSender()] == true, "Ownable: caller is not the owner or white list");
-        _;
-    }
 
     //  合约owner、newItemWhiteList可以调用此接口创建item
     function newItem(

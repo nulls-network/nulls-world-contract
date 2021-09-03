@@ -14,7 +14,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
 
     address Proxy = address(0);
     address PetToken = address(0);
-    bool IsOk = false;
+    bool IsOk = true;
     uint SceneId ;
 
     // 普通宠物休息时间（秒）
@@ -91,22 +91,17 @@ contract NullsRingManager is IOnlineGame, Ownable {
         }) ;
     }
 
-    function setProxy(address proxy) external onlyOwner {
+    function setProxy(address proxy, string memory name) external onlyOwner {
         Proxy = proxy;
-        if (PetToken != address(0)) {
-            IsOk = true;
-        }
+        SceneId = INullsWorldCore(Proxy).newScene(address(this), name);
+    }
+
+    function getSceneId() external view returns(uint sceneId) {
+        return SceneId;
     }
 
     function setPetToken( address petToken ) external onlyOwner {
         PetToken = petToken ;
-        if (Proxy != address(0)) {
-            IsOk = true;
-        }
-    }
-
-    function setSceneId(uint sceneId) external onlyOwner {
-        SceneId = sceneId;
     }
 
     // check game contract is availabl.

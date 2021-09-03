@@ -8,12 +8,14 @@ import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/IERC20.sol";
 import "./INullsAfterBuyToken.sol";
 import "../../utils/Ownable.sol";
+import "../../interfaces/INullsWorldCore.sol";
 
 contract NullsEggManager is IOnlineGame, Ownable {
     address EggToken ;
     address PetToken ;
     address Proxy;
     address BuyTokenAfter ;
+    uint SceneId;
 
     mapping( address => BuyToken ) BuyTokens ;  // token -> config
 
@@ -24,7 +26,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
 
     address BuyAfterAddress ;   //购买后的处理函数
 
-    bool IsOk = false;
+    bool IsOk = true;
 
     event NewPet(uint petid, uint batchIndex , uint item , address player , uint v , bytes32 rv ) ;
 
@@ -33,9 +35,13 @@ contract NullsEggManager is IOnlineGame, Ownable {
         _;
     }
 
-    function setProxy(address proxy) external onlyOwner {
+    function setProxy(address proxy, string memory name) external onlyOwner {
         Proxy = proxy;
-        IsOk = true;
+        SceneId = INullsWorldCore(Proxy).newScene(address(this), name);
+    }
+
+    function getSceneId() external view returns(uint sceneId) {
+        return SceneId;
     }
 
     function setPetToken( address eggToken , address petToken ) external onlyOwner {
