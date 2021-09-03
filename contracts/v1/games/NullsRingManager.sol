@@ -6,8 +6,11 @@ import "../../utils/Ownable.sol";
 import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/IERC20.sol";
 import "../../interfaces/INullsWorldCore.sol";
+import "../../utils/Counters.sol";
 
 contract NullsRingManager is IOnlineGame, Ownable {
+
+    using Counters for Counters.Counter;
 
     address Proxy = address(0);
     address PetToken = address(0);
@@ -16,6 +19,8 @@ contract NullsRingManager is IOnlineGame, Ownable {
 
     // 普通宠物休息时间（秒）
     uint GeneralPetRestTime = 300;
+
+    mapping(address => Counters.Counter) Nonces;
  
     // 支持的token列表
     mapping( address => RingTokenConfig ) RingTokens;
@@ -105,12 +110,40 @@ contract NullsRingManager is IOnlineGame, Ownable {
         return IsOk;
     }
 
+    function nonces(address player) public view returns (uint256) {
+        return Nonces[player].current();
+    }
+
+    function _useNonces(address player) internal returns (uint256 current) {
+        Counters.Counter storage counter = Nonces[player];
+        current = counter.current();
+        counter.increment();
+    }
   
-    // 服务端调用此接口创建擂台，在调用接口前，服务端需要判断客户端的签名是否正确
+    function encodePack(
+        uint petId, 
+        address token,
+        uint8 multiple,
+        uint256 nonce
+    ) internal view returns (bytes32 v) {
+
+        v = keccak256(
+            abi.encode(
+                "nulls.online-play",
+                petId,
+                token,
+                multiple,
+                nonce,
+                block.chainid
+            )
+        );
+    }
+    
     // 创建擂台,擂台创建时自动创建一个Item
     // 需要预先创建擂台PK场景
     // 返回擂台ID(item ID)
     function createRing(
+        address creator,
         uint petId, 
         address token,
         uint8 multiple,
@@ -118,6 +151,13 @@ contract NullsRingManager is IOnlineGame, Ownable {
         bytes32 r , 
         bytes32 s ,
         address pubkey ) external onlyOwner returns(uint256 itemId) {
+
+            require(creator != address(0), "NullsRingManager/Invalid address.");
+
+            require(
+                ecrecover(encodePack(petId, token, multiple, _useNonces(creator)), v, r, s) == creator,
+                "NullsRingManager/Signature verification failure."
+            ); 
 
             // 是否在守擂中
             bool isLocked = PetLocked[petId] ;
