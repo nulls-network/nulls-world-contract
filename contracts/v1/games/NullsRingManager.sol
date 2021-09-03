@@ -105,6 +105,10 @@ contract NullsRingManager is IOnlineGame, Ownable {
         }
     }
 
+    function setSceneId(uint sceneId) external onlyOwner {
+        SceneId = sceneId;
+    }
+
     // check game contract is availabl.
     function test() external view override returns( bool ) {
         return IsOk;
