@@ -6,7 +6,7 @@ import "../interfaces/IOnlineRouter.sol";
 import "../utils/Ownable.sol";
 
 contract NullsWorldCore is IOnlineGame, Ownable {
-    event NewGameItem( uint sceneId , uint itemId , address pubkey , address sender) ;
+
     // random oracle
     address RandomOracle;
     IOnlineRouter OnlineRouter;

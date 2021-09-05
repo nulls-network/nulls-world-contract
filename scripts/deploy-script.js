@@ -14,9 +14,6 @@ const pkPrice = 10;
 let petTokenAddr = ""
 let eggTokenAddr = ""
 
-const deployPetToken = true;
-const deployeggToken = true;
-
 // 游戏名称
 const gameName = "Nulls"
 
@@ -28,17 +25,13 @@ const petPkName = "Nulls-Pk";
 
 async function main() {
 
-  if (deployPetToken) {
-    await petToken() 
-  }
-  
-  if (deployeggToken) {
-    await eggToken()
-  }
+
+  let petT = await petToken() 
+  let eggT = await eggToken()
 
   let core = await mainCore()
 
-  let eggMng = await eggManager(core)
+  let eggMng = await eggManager(core, petT, eggT)
 
   let ring = await ringManager(core)
   
@@ -65,9 +58,15 @@ async function mainCore() {
   return core;
 }
 
-async function eggManager(core){
+async function eggManager(core, petT, eggT){
   
   let eggmanager = await deployContract("NullsEggManager")
+
+  // 配置petToken operator
+  await petT.modifyOper(eggmanager.address)
+  // 配置eggToken operator
+  await eggT.modifierOper(eggmanager.address)
+
   // 配置newItem白名单权限
   let txAddWhiteList = await core.addNewItemWhiteList(eggmanager.address)
   await txAddWhiteList.wait()
@@ -89,11 +88,13 @@ async function eggManager(core){
 async function petToken() {
   let pt = await deployContract("NullsPetToken")
   petTokenAddr = pt.address
+  return pt
 }
 
 async function eggToken() {
   let et = await deployContract("NullsEggToken")
   eggTokenAddr = et.address
+  return et
 }
 
 async function ringManager(core) {
