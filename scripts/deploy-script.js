@@ -4,7 +4,7 @@ const hre = require("hardhat");
 const routerAddr = "0x10B1E40Eb8Fe6B7b1673140631f647Ab42160F83"
 
 // 购买蛋的币种、Pk入场券币种
-const erc20USDTAddr = "0x04F535663110A392A6504839BEeD34E019FdB4E0"
+let erc20USDTAddr = ""
 
 // 购买蛋的单价
 const eggPrice = 1;
@@ -23,9 +23,12 @@ const eggMngName = "Nulls-OpenEgg";
 // PK场景名称
 const petPkName = "Nulls-Pk";
 
+// 普通宠物休息时间
+const generalPetRestTime = 1;
+
 async function main() {
 
-
+  await c20();
   let petT = await petToken() 
   let eggT = await eggToken()
 
@@ -47,6 +50,12 @@ async function deployContract( contractName , ... args ) {
   console.log(` ${contractName} deployed to : ${entity.address} ${args}`)
 
   return entity 
+}
+
+async function c20() {
+  let c20 = await deployContract("ERC20", "NullsTestToken", "NX")
+  erc20USDTAddr = c20.address;
+  return c20;
 }
 
 async function mainCore() {
@@ -114,6 +123,9 @@ async function ringManager(core) {
   // 配置pet合约地址
   let txHashSetPetToken = await ring.setPetToken(petTokenAddr)
   let waitRet = await txHashSetPetToken.wait()
+
+  // 配置普通宠物休息时间
+  ring.setRestTime(generalPetRestTime)
 
   let sceneId = await ring.getSceneId()
   console.log("ringManager sceneId = ", sceneId)
