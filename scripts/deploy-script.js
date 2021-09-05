@@ -4,7 +4,8 @@ const hre = require("hardhat");
 const routerAddr = "0x10B1E40Eb8Fe6B7b1673140631f647Ab42160F83"
 
 // 购买蛋的币种、Pk入场券币种
-let erc20USDTAddr = ""
+let erc20USDTAddr = "0x04F535663110A392A6504839BEeD34E019FdB4E0"
+let erc20NullsTestAddr = ""
 
 // 购买蛋的单价
 const eggPrice = 1;
@@ -53,8 +54,8 @@ async function deployContract( contractName , ... args ) {
 }
 
 async function c20() {
-  let c20 = await deployContract("ERC20", "NullsTestToken", "NX")
-  erc20USDTAddr = c20.address;
+  let c20 = await deployContract("NullsERC20Token")
+  erc20NullsTestAddr = c20.address;
   return c20;
 }
 
@@ -84,6 +85,7 @@ async function eggManager(core, petT, eggT){
   await eggmanager.setPetToken(eggTokenAddr,petTokenAddr)
 
   // 设置购买宠物币种和金额
+  await eggmanager.setBuyToken(erc20NullsTestAddr, eggPrice);
   await eggmanager.setBuyToken(erc20USDTAddr, eggPrice);
 
   // 设置代理，并创建场景
@@ -115,8 +117,11 @@ async function ringManager(core) {
   await txAddWhiteList.wait();
 
   // 配置支持的币种(测试，入场资金10U，开擂台花费50U/100U)
-  let txHashAddRingToken = await ring.addRingToken(erc20USDTAddr, pkPrice)
+  let txHashAddRingToken = await ring.addRingToken(erc20NullsTestAddr, pkPrice)
   await txHashAddRingToken.wait()
+  txHashAddRingToken = await ring.addRingToken(erc20USDTAddr, pkPrice)
+  await txHashAddRingToken.wait()
+
   // 配置代理，并创建场景
   let txHashSetProxy = await ring.setProxy(core.address, petPkName)
   await txHashSetProxy.wait()
