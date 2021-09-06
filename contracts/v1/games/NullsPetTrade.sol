@@ -103,14 +103,11 @@ contract NullsPetTrade is Ownable{
         // 检查卖家宠物是否可以转让
         require(INullsPetToken(PetToken).getApproved(petId) == address(this), "NullsPetTrade/Current pet is not approved.");
 
-        // 检查买家是否有足够的token支付
-        require(IERC20(sellInfo.token).allowance(msg.sender, address(this)) >= sellInfo.price, "NullsPetTrade/Insufficient balance or insufficient approved amount.");
+        // 转token
+        require(IERC20(sellInfo.token).transferFrom(msg.sender, sellInfo.seller, sellInfo.price), "NullsPetTrade/Transfer failed: it may be unapproved.");
 
         // 转宠物
         INullsPetToken(PetToken).transferFrom(sellInfo.seller, msg.sender, petId);
-
-        // 转token
-        IERC20(sellInfo.token).transferFrom(msg.sender, sellInfo.seller, sellInfo.price);
 
         // 置位
         sellInfo.isSell = false;
