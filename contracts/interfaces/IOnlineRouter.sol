@@ -2,60 +2,36 @@
 pragma solidity ^0.8.0;
 
 interface IOnlineRouter {
-    event NewGame(address game, address mng, uint256 gameId, string gameName);
 
-    event NewGameScene(
-        uint256 gameId,
-        uint256 sceneId,
-        string sceneName,
-        address sender
-    );
+    event NewGame( address game , address mng , uint gameId , string gameName ) ;
 
-    event NewGameItem(
-        uint256 sceneId,
-        uint256 itemId,
-        address pubkey,
-        address sender
-    );
+    event NewGameScene( uint gameId , uint sceneId , string sceneName , address sender ) ;
 
-    event PublishPrivateKey(uint256 itemId, bytes privateKey, address sender);
+    event NewGameItem( uint sceneId , uint itemId , address pubkey , address sender) ;
 
-    event GameWrite(uint256 itemId, address player, bytes32 hv, bytes32 rv);
+    event PublishPrivateKey( uint itemId , bytes privateKey , address sender ) ;
 
-    function registGame(
-        address game,
-        string memory name,
-        address oper
-    ) external returns (uint256 gameId);
+    event GameWrite( uint itemId, bytes32 hv , bytes32 rv ) ;
 
-    function addScene(uint256 gameId, string memory name)
-        external
-        returns (uint256 sceneId);
+    event newNonce(uint itemId, bytes32 hv, uint256 nonce);
 
-    function addItem(uint256 sceneId, address pubkey)
-        external
-        returns (uint256 itemId);
+    function registGame( address game , string memory name , address oper ) external returns (uint gameId ) ;
 
-    function publistAndNewItem(
-        uint256 sceneId,
-        uint256 oldItemId,
-        bytes memory privateKey,
-        address newPubKey
-    ) external returns (uint256 newItemId);
+    function addScene( uint gameId , string memory name ) external returns (uint sceneId ) ;
 
-    function nonces(uint256 itemId) external view returns (uint256);
+    function addItem( uint sceneId , address pubkey ) external returns ( uint itemId ) ;
 
-    function gameinfo(uint256 itemId)
-        external
-        view
-        returns (address gameAddr, address pubkey);
+    function publistAndNewItem( uint sceneId , uint oldItemId , bytes memory privateKey , address newPubKey ) external returns (uint newItemId ) ;
+
+    function getNonce(uint256 itemId, bytes32 hv) external returns(uint256 nonce);
+
+    function gameinfo(uint256 itemId) external view returns (address gameAddr, address pubkey);
 
     function play(
-        uint256 itemId,
         bytes32 hv,
         uint256 deadline,
-        uint8[] calldata vs,
-        bytes32[] calldata rs,
-        bytes32[] calldata ss
-    ) external returns (address player , bytes32 rv);
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 }

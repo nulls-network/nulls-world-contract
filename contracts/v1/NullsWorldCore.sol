@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../interfaces/IOnlineGame.sol";
 import "../interfaces/IOnlineRouter.sol";
 import "../utils/Ownable.sol";
+import "../utils/Counters.sol";
 
 contract NullsWorldCore is IOnlineGame, Ownable {
 
@@ -18,7 +19,7 @@ contract NullsWorldCore is IOnlineGame, Ownable {
 
     // newItem白名单
     mapping(address => bool) newItemWhiteList;
-
+ 
     modifier onlyOwnerOrWhiteList() {
         require(owner() == _msgSender() || newItemWhiteList[_msgSender()] == true, "Ownable: caller is not the owner or white list");
         _;
@@ -85,8 +86,8 @@ contract NullsWorldCore is IOnlineGame, Ownable {
         Items[ newItemId ] = sceneId ;
     }
 
-    function nonces(uint256 itemId) external view returns (uint256 v) {
-        v = OnlineRouter.nonces(itemId);
+    function getNonce(uint256 itemId, bytes32 hv) public returns(uint256 nonce) {
+       return OnlineRouter.getNonce(itemId, hv);
     }
 
     function test() external view override returns (bool) {
@@ -95,23 +96,22 @@ contract NullsWorldCore is IOnlineGame, Ownable {
 
     function notify(
         uint256 item,
-        address player,
+        bytes32 hv,
         bytes32 rv
     ) external override returns (bool) {
         uint sceneId = Items[item] ;
         address sceneAddr = Scenes[sceneId] ;
-        return IOnlineGame(sceneAddr).notify(item, player, rv);
+        return IOnlineGame(sceneAddr).notify(item, hv, rv);
     }
-
+ 
     function play(
-        uint256 itemId,
         bytes32 hv,
         uint256 deadline,
-        uint8[] calldata vs,
-        bytes32[] calldata rs,
-        bytes32[] calldata ss
-    ) external override returns (address player, bytes32 rv) { 
-        (player, rv) =OnlineRouter.play(itemId, hv, deadline, vs, rs, ss);
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external { 
+        OnlineRouter.play(hv, deadline, v, r, s);
     }
 
 }

@@ -37,7 +37,7 @@ async function main() {
 
   let eggMng = await eggManager(core, petT, eggT)
 
-  let ring = await ringManager(core)
+  // let ring = await ringManager(core)
   
   console.log("完成!")
 }

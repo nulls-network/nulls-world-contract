@@ -9,6 +9,7 @@ import "../../interfaces/IERC20.sol";
 import "./INullsAfterBuyToken.sol";
 import "../../utils/Ownable.sol";
 import "../../interfaces/INullsWorldCore.sol";
+import "../../utils/Counters.sol";
 
 contract NullsEggManager is IOnlineGame, Ownable {
     address EggToken ;
@@ -24,11 +25,33 @@ contract NullsEggManager is IOnlineGame, Ownable {
         bool isOk ;
     }
 
+    using Counters for Counters.Counter;
+
+    // 该nonce值用作生成hash
+    mapping(address => Counters.Counter) Nonces;
+
+    function _useNonces(address player) internal returns (uint256 current) {
+        Counters.Counter storage counter = Nonces[player];
+        current = counter.current();
+        counter.increment();
+    }
+
+    struct DataInfo {
+        uint total;
+        uint itemId;
+        uint256 nonce;
+        address player;
+    }
+
+    mapping( bytes32 => DataInfo) DataInfos;
+
     address BuyAfterAddress ;   //购买后的处理函数
 
     bool IsOk = true;
 
     event NewPet(uint petid, uint batchIndex , uint item , address player , uint v , bytes32 rv ) ;
+
+    event eggNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
@@ -65,23 +88,20 @@ contract NullsEggManager is IOnlineGame, Ownable {
         return IsOk;
     }
 
-    function notify(
-        uint256 item,
-        address player,
-        bytes32 rv
-    ) external override isFromProxy returns (bool) {
-        // IERC20( EggToken ).transferFrom( player , address(this), total );
+    function notify(uint item , bytes32 hv , bytes32 rv) external override isFromProxy returns (bool) {
+
+        // 获取业务数据
+        DataInfo memory dataInfo = DataInfos[hv];
+
+        require(dataInfo.total > 0, "NullsEggManager/The data obtained by HV is null");
+        
+
+        IERC20( EggToken ).transferFrom( dataInfo.player, address(this), dataInfo.total );
         // IERC20 egg = IERC20( EggToken ) ;
-        // // 开蛋逻辑
-        // uint total = egg.balanceOf( address(this) ) ;
-        // if( total > 20 ) {
-        //     total = 20 ;
-        // }
-
-        // for(uint8 i = 0 ; i < total ; i ++ ) {
-        //     _openOne( i , item , player , rv ) ;
-        // }
-
+        for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
+            _openOne( i , dataInfo.itemId , dataInfo.player , rv ) ;
+        }
+ 
         return true;
     }
 
@@ -130,35 +150,35 @@ contract NullsEggManager is IOnlineGame, Ownable {
     function openMultiple(
         uint total ,
         uint itemId , 
-        bytes32 hv ,        // 原始数据签名
-        uint256 deadline,
-        uint8[] calldata vs,
-        bytes32[] calldata rs,
-        bytes32[] calldata ss
+        uint256 deadline
     ) external {
         require( total > 0 && total <=20 , "NullsEggManager/Use 1-20 at a time.");
-        // address player = ecrecover(hash, v, r, s)
-        // got egg token from player 
+
+        require(block.timestamp <= deadline, "NullsEggManager: expired deadline");
+    
+        // 生成hash
+        bytes32 hv = keccak256(
+            abi.encode(
+                "nulls.egg",
+                total,
+                itemId,
+                deadline,
+                _useNonces(msg.sender),
+                block.chainid
+            )
+        );
         
-        // check sign ..
-        // (Proxy).play(itemId, hv, deadline, vs, rs, ss);
-        (address player,bytes32 rv) = IOnlineGame(Proxy).play(itemId, hv, deadline, vs, rs, ss);
 
-        IERC20( EggToken ).transferFrom( player, address(this), total );
-        // IERC20 egg = IERC20( EggToken ) ;
-        for(uint8 i = 0 ; i < total ; i ++ ) {
-            _openOne( i , itemId , player , rv ) ;
-        }
-    }
+        // 调用预注册方法
+        uint256 nonce = INullsWorldCore(Proxy).getNonce(itemId, hv);
 
-    function play(
-        uint256 itemId,
-        bytes32 hv,
-        uint256 deadline,
-        uint8[] calldata vs,
-        bytes32[] calldata rs,
-        bytes32[] calldata ss
-    ) external override returns (address player , bytes32 rv){
-
+        // 存储
+        DataInfos[hv] = DataInfo({
+            total: total,
+            itemId: itemId,
+            nonce: nonce,
+            player: msg.sender
+        });
+        emit eggNewNonce(itemId, hv, nonce, deadline);
     }
 }
