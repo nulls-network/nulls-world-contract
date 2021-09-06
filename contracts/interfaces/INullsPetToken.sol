@@ -5,4 +5,6 @@ interface INullsPetToken {
     function mint( address player , uint8 tv ) external returns ( uint tokenId ) ;
     function ownerOf(uint256 tokenId) external view returns (address) ;
     function Types(uint tokenId) external view returns(uint8); 
+    function getApproved(uint256 tokenId) external view returns (address);
+    function transferFrom(address from, address to, uint256 tokenId) external;
 }
