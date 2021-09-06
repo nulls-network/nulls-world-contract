@@ -33,5 +33,5 @@ interface IOnlineRouter {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external;
+    ) external returns (bytes32 rv);
 }

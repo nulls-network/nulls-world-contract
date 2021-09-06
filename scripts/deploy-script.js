@@ -130,7 +130,7 @@ async function ringManager(core) {
   let waitRet = await txHashSetPetToken.wait()
 
   // 配置普通宠物休息时间
-  ring.setRestTime(generalPetRestTime)
+  await ring.setRestTime(generalPetRestTime)
 
   let sceneId = await ring.getSceneId()
   console.log("ringManager sceneId = ", sceneId)
