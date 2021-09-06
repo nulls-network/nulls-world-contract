@@ -65,8 +65,8 @@ contract NullsRingManager is IOnlineGame, Ownable {
         uint total;
     }
 
-    // 创建擂台，itemId、创建擂台的宠物、擂台支付token、初始资金、创建者、倍率
-    event NewRing(uint256 itemId, uint petId, address token, uint initialCapital, address creater, uint8 multiple);
+    // 创建擂台，itemId、创建擂台的宠物、擂台支付token、初始资金、创建者、倍率、创建时的公钥
+    event NewRing(uint256 itemId, uint petId, address token, uint initialCapital, address creater, uint8 multiple, address publicKey);
 
     // 擂台状态更新,itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值
     event RingUpdate(uint256 itemId, uint challengerPetId, address challenger, uint bonusPool, bytes32 rv, bool isWin , uint value);
@@ -191,7 +191,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
             });
 
             PetLocked[petId] = true ;            
-            emit NewRing(itemId, petId, token, initialCapital, creator, multiple);
+            emit NewRing(itemId, petId, token, initialCapital, creator, multiple, pubkey);
     }
 
     function getRewardRatio(uint total) internal pure returns(uint8 ringPool, uint8 ringOwner, uint8 gameOperator) {
