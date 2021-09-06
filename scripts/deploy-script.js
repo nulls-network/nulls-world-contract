@@ -1,16 +1,16 @@
 const hre = require("hardhat");
 
 // router合约地址
-const routerAddr = "0x10B1E40Eb8Fe6B7b1673140631f647Ab42160F83"
+const routerAddr = "0xab9dddC68e4dBE087165fda149aaFF26A833e30c"
 
 // 购买蛋的币种、Pk入场券币种
 let erc20USDTAddr = "0x04F535663110A392A6504839BEeD34E019FdB4E0"
 let erc20NullsTestAddr = ""
 
 // 购买蛋的单价
-const eggPrice = 1;
+const eggPrice = 1 * 1000000;
 // pk入场券
-const pkPrice = 10;
+const pkPrice = 10 * 1000000;
 
 let petTokenAddr = ""
 let eggTokenAddr = ""
@@ -37,7 +37,7 @@ async function main() {
 
   let eggMng = await eggManager(core, petT, eggT)
 
-  // let ring = await ringManager(core)
+  let ring = await ringManager(core)
   
   console.log("完成!")
 }

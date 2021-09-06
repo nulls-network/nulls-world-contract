@@ -51,7 +51,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
 
     event NewPet(uint petid, uint batchIndex , uint item , address player , uint v , bytes32 rv ) ;
 
-    event eggNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
+    event EggNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
@@ -94,6 +94,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         DataInfo memory dataInfo = DataInfos[hv];
 
         require(dataInfo.total > 0, "NullsEggManager/The data obtained by HV is null");
+        require(item == dataInfo.itemId, "NullsEggManager/Item verification failed");
         
 
         IERC20( EggToken ).transferFrom( dataInfo.player, address(this), dataInfo.total );
@@ -179,6 +180,6 @@ contract NullsEggManager is IOnlineGame, Ownable {
             nonce: nonce,
             player: msg.sender
         });
-        emit eggNewNonce(itemId, hv, nonce, deadline);
+        emit EggNewNonce(itemId, hv, nonce, deadline);
     }
 }
