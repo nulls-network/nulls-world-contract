@@ -19,7 +19,7 @@ contract NullsPetTrade is Ownable{
     address PetToken = address(0);
 
     // 存储支持交易的token
-    mapping( address => bool ) SupportedToken;
+    mapping( address => bool ) public SupportedToken;
 
     struct SellInfo {
         // 是否在出售
@@ -35,7 +35,7 @@ contract NullsPetTrade is Ownable{
     }
 
     // 存储出售信息
-    mapping(uint256 => SellInfo) PetSellInfos;
+    mapping(uint256 => SellInfo) public PetSellInfos;
  
     function setPetToken( address petToken ) external onlyOwner {
         PetToken = petToken ;
@@ -45,7 +45,6 @@ contract NullsPetTrade is Ownable{
     function setSupportedToken(address tokenAddr) external onlyOwner {
         SupportedToken[tokenAddr] = true;
     }
-
 
     // 出售
     function sellPet(uint256 petId, address tokenAddr, uint price) external {

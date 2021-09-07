@@ -8,7 +8,7 @@ import "../../interfaces/IERC20.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../utils/Counters.sol";
 
-contract NullsRingManager is IOnlineGame, Ownable {
+contract NullsRankManager is IOnlineGame, Ownable {
 
     using Counters for Counters.Counter;
 
@@ -23,25 +23,25 @@ contract NullsRingManager is IOnlineGame, Ownable {
     mapping(address => Counters.Counter) Nonces;
  
     // 支持的token列表
-    mapping( address => RingTokenConfig ) RingTokens;
+    mapping( address => RankTokenConfig ) RankTokens;
 
     // 记录上次挑战时间
     // 对于普通宠物: 上次挑战时间
     mapping( uint => uint) public LastChallengeTime;
 
-    struct RingTokenConfig {
+    struct RankTokenConfig {
         // 最小启动资金
         uint minInitialCapital;
         bool isOk ;
     }
 
     // 擂台信息
-    mapping( uint256 => Ring) public Rings;
+    mapping( uint256 => Rank) public Ranks;
 
     // 记录pet、Item映射关系
     mapping( uint => bool ) PetLocked; // petid -> beating  
 
-    struct Ring {
+    struct Rank {
         // 开擂台宠物ID
         uint petId;
         // 擂台挑战token类型
@@ -75,12 +75,12 @@ contract NullsRingManager is IOnlineGame, Ownable {
     mapping( bytes32 => DataInfo) DataInfos;
 
     // 创建擂台，itemId、创建擂台的宠物、擂台支付token、初始资金、创建者、倍率、创建时的公钥
-    event NewRing(uint256 itemId, uint petId, address token, uint initialCapital, address creater, uint8 multiple, address publicKey);
+    event NewRank(uint256 itemId, uint petId, address token, uint initialCapital, address creater, uint8 multiple, address publicKey);
 
     // 擂台状态更新,itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值
-    event RingUpdate(uint256 itemId, uint challengerPetId, address challenger, uint bonusPool, bytes32 rv, bool isWin , uint value);
+    event RankUpdate(uint256 itemId, uint challengerPetId, address challenger, uint bonusPool, bytes32 rv, bool isWin , uint value);
 
-    event RingNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
+    event RankNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
 
     // 设置休息时间
     function setRestTime( uint generalPetRestTime) external onlyOwner {
@@ -94,8 +94,8 @@ contract NullsRingManager is IOnlineGame, Ownable {
     }
 
     // 添加支持的代币
-    function addRingToken( address token, uint minInitialCapital) external onlyOwner {
-        RingTokens[ token ] = RingTokenConfig({
+    function addRankToken( address token, uint minInitialCapital) external onlyOwner {
+        RankTokens[ token ] = RankTokenConfig({
             minInitialCapital: minInitialCapital,
             isOk: true
         }) ;
@@ -151,7 +151,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
     // 创建擂台,擂台创建时自动创建一个Item
     // 需要预先创建擂台PK场景
     // 返回擂台ID(item ID)
-    function createRing(
+    function createRank(
         address creator,
         uint petId, 
         address token,
@@ -161,37 +161,37 @@ contract NullsRingManager is IOnlineGame, Ownable {
         bytes32 s ,
         address pubkey ) external onlyOwner returns(uint256 itemId) {
 
-            require(creator != address(0), "NullsRingManager/Invalid address.");
+            require(creator != address(0), "NullsRankManager/Invalid address.");
 
             require(
                 ecrecover(encodePack(petId, token, multiple, _useNonces(creator)), v, r, s) == creator,
-                "NullsRingManager/Signature verification failure."
+                "NullsRankManager/Signature verification failure."
             ); 
 
             // 是否在守擂中
             bool isLocked = PetLocked[petId] ;
-            require( isLocked == false , "NullsRingManager/The pet is beating.");
+            require( isLocked == false , "NullsRankManager/The pet is beating.");
 
             // 检查token是否合法
-            require(RingTokens[token].isOk == true, "NullsRingManager/Unsupported token.");
+            require(RankTokens[token].isOk == true, "NullsRankManager/Unsupported token.");
             // 检查倍率是否合法
-            require(multiple == 5 || multiple== 10, "NullsRingManager/Unsupported multiple.");
+            require(multiple == 5 || multiple== 10, "NullsRankManager/Unsupported multiple.");
 
             // 检查petId是否合法
-            require(INullsPetToken( PetToken ).ownerOf(petId) == creator, "NullsRingManager/Pet id is illegal");
-            require(INullsPetToken( PetToken ).Types(petId) == 0xff, "NullsRingManager/Pets do not have the ability to open the ring");
-            uint initialCapital = RingTokens[token].minInitialCapital * multiple;
+            require(INullsPetToken( PetToken ).ownerOf(petId) == creator, "NullsRankManager/Pet id is illegal");
+            require(INullsPetToken( PetToken ).Types(petId) == 0xff, "NullsRankManager/Pets do not have the ability to open the Rank");
+            uint initialCapital = RankTokens[token].minInitialCapital * multiple;
             // 转出擂台启动资金
             IERC20( token ).transferFrom( creator, address(this) , initialCapital );
             // 创建item
             itemId = INullsWorldCore(Proxy).newItem( SceneId , pubkey );
 
             // 记录擂台信息
-            Rings[itemId] = Ring({
+            Ranks[itemId] = Rank({
                 petId: petId,
                 token: token,
                 initialCapital: initialCapital,
-                ticketAmt : RingTokens[token].minInitialCapital ,
+                ticketAmt : RankTokens[token].minInitialCapital ,
                 multiple: multiple,
                 creater: creator,
                 bonusPool: initialCapital,
@@ -201,86 +201,86 @@ contract NullsRingManager is IOnlineGame, Ownable {
             });
 
             PetLocked[petId] = true ;            
-            emit NewRing(itemId, petId, token, initialCapital, creator, multiple, pubkey);
+            emit NewRank(itemId, petId, token, initialCapital, creator, multiple, pubkey);
     }
 
-    function getRewardRatio(uint total) internal pure returns(uint8 ringPool, uint8 ringOwner, uint8 gameOperator) {
+    function getRewardRatio(uint total) internal pure returns(uint8 RankPool, uint8 RankOwner, uint8 gameOperator) {
         if (total <= 10) {
-            ringPool = 6;
-            ringOwner = 3;
+            RankPool = 6;
+            RankOwner = 3;
             gameOperator = 1;
         } else if (total > 10 && total <= 20) {
-            ringPool = 7;
-            ringOwner = 2;
+            RankPool = 7;
+            RankOwner = 2;
             gameOperator = 1;
         } else {
-            ringPool = 8;
-            ringOwner = 1;
+            RankPool = 8;
+            RankOwner = 1;
             gameOperator = 1;
         }
     }
 
     function doReward(address player, uint256 itemId, bytes32 rv, uint challengerPetId) internal {
-        Ring memory ring = Rings[itemId];
+        Rank memory rank = Ranks[itemId];
         // 判断擂台奖金池
-        require(ring.bonusPool > 0, "NullsRingManager/The ring bonus pool is 0");
+        require(rank.bonusPool > 0, "NullsRankManager/The Rank bonus pool is 0");
 
         // 计算挑战金(初始资金/倍率)
-        uint challengeCapital = ring.ticketAmt;
+        uint challengeCapital = rank.ticketAmt;
 
         // 从挑战者账户扣款
-        IERC20( ring.token ).transferFrom( player, address(this) , challengeCapital);
+        IERC20( rank.token ).transferFrom( player, address(this) , challengeCapital);
 
         // 挑战金分成
-        (uint8 ringPoolRatio, uint8 ringOwnerRatio, uint8 gameOperatorRatio) = getRewardRatio(ring.total);
+        (uint8 RankPoolRatio, uint8 RankOwnerRatio, uint8 gameOperatorRatio) = getRewardRatio(rank.total);
 
         // 给擂台奖金池
-        ring.bonusPool += challengeCapital * ringPoolRatio / 10;
+        rank.bonusPool += challengeCapital * RankPoolRatio / 10;
 
         // 给擂台所有者
-        ring.ownerBonus += challengeCapital * ringOwnerRatio / 10;
+        rank.ownerBonus += challengeCapital * RankOwnerRatio / 10;
 
         // 给游戏运营商
-        ring.gameOperatorBonus += challengeCapital * gameOperatorRatio / 10;
+        rank.gameOperatorBonus += challengeCapital * gameOperatorRatio / 10;
         
 
         // 判断挑战结果,1/16的获胜几率
         if (uint8(bytes1(rv)) & 0x0f == 0x0f) {
             // 挑战者获胜
-            if (challengeCapital * 10 > ring.bonusPool) {
+            if (challengeCapital * 10 > rank.bonusPool) {
                 // 全部赢走
                 
                 // 给挑战者转账
-                IERC20( ring.token ).transfer( player, ring.bonusPool);
+                IERC20( rank.token ).transfer( player, rank.bonusPool);
                 // 结算擂台所属者奖金
-                address ringOwner = INullsPetToken( PetToken ).ownerOf(ring.petId);
-                IERC20( ring.token ).transfer( ringOwner, ring.ownerBonus);
-                ring.ownerBonus = 0;
+                address RankOwner = INullsPetToken( PetToken ).ownerOf(rank.petId);
+                IERC20( rank.token ).transfer( RankOwner, rank.ownerBonus);
+                rank.ownerBonus = 0;
 
                 // 结算游戏服务商奖金
-                // ring.gameOperatorBonus = 0;
-                IERC20( ring.token ).transfer( owner() , ring.gameOperatorBonus); 
-                ring.gameOperatorBonus = 0;
+                // Rank.gameOperatorBonus = 0;
+                IERC20( rank.token ).transfer( owner() , rank.gameOperatorBonus); 
+                rank.gameOperatorBonus = 0;
 
                 // 解锁守擂宠物
-                PetLocked[ring.petId] = false ;
+                PetLocked[rank.petId] = false ;
 
-                emit RingUpdate(itemId, challengerPetId, player, 0, rv, true, ring.bonusPool);
-                ring.bonusPool = 0;     
+                emit RankUpdate(itemId, challengerPetId, player, 0, rv, true, rank.bonusPool);
+                rank.bonusPool = 0;     
             } else {
                 // 只能赢走一半
-                uint poolBalance = ring.bonusPool / 2;
+                uint poolBalance = rank.bonusPool / 2;
                 // 给挑战者转账
-                IERC20( ring.token ).transfer( player, poolBalance );
-                emit RingUpdate(itemId, challengerPetId, player, poolBalance , rv, true , poolBalance );
-                ring.bonusPool = poolBalance;
+                IERC20( rank.token ).transfer( player, poolBalance );
+                emit RankUpdate(itemId, challengerPetId, player, poolBalance , rv, true , poolBalance );
+                rank.bonusPool = poolBalance;
             }
         } else {
             // 庄家获胜
-            emit RingUpdate(itemId, challengerPetId, player, ring.bonusPool, rv, false , challengeCapital * ringPoolRatio / 10);
+            emit RankUpdate(itemId, challengerPetId, player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10);
         }
 
-        Rings[itemId] = ring;
+        Ranks[itemId] = rank;
         
     }
 
@@ -291,13 +291,13 @@ contract NullsRingManager is IOnlineGame, Ownable {
         uint256 deadline
     ) external {
 
-        require(block.timestamp <= deadline, "NullsRingManager: expired deadline");
+        require(block.timestamp <= deadline, "NullsRankManager: expired deadline");
 
         // 判断宠物所有权
-        require(INullsPetToken( PetToken ).ownerOf(challengerPetId) == msg.sender, "NullsRingManager/Pet id is illegal");
+        require(INullsPetToken( PetToken ).ownerOf(challengerPetId) == msg.sender, "NullsRankManager/Pet id is illegal");
 
         // 是否在休息中
-        require(block.timestamp > LastChallengeTime[challengerPetId] , "NullsRingManager/Pets at rest");
+        require(block.timestamp > LastChallengeTime[challengerPetId] , "NullsRankManager/Pets at rest");
 
         // 记录时间
         LastChallengeTime[challengerPetId] = block.timestamp + GeneralPetRestTime;
@@ -324,7 +324,7 @@ contract NullsRingManager is IOnlineGame, Ownable {
             player: msg.sender
         });
 
-        emit RingNewNonce(itemId, hv, nonce, deadline) ;
+        emit RankNewNonce(itemId, hv, nonce, deadline) ;
     }
 
     // Receive proxy's message 
