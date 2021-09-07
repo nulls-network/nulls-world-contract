@@ -70,6 +70,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         uint itemId;
         uint256 nonce;
         address player;
+        bool isOk;
     }
 
     mapping( bytes32 => DataInfo) DataInfos;
@@ -326,7 +327,8 @@ contract NullsRankManager is IOnlineGame, Ownable {
             challengerPetId: challengerPetId,
             itemId: itemId,
             nonce: nonce,
-            player: msg.sender
+            player: msg.sender,
+            isOk: true
         });
 
         emit RankNewNonce(itemId, hv, nonce, deadline) ;
@@ -336,10 +338,17 @@ contract NullsRankManager is IOnlineGame, Ownable {
     function notify( uint item , bytes32 hv , bytes32 rv ) external override isFromProxy returns ( bool ) {
         // 获取业务数据
         DataInfo memory dataInfo = DataInfos[hv];
-        require(item == dataInfo.itemId, "NullsEggManager/Item verification failed");
+        require(item == dataInfo.itemId, "NullsRankManager/Item verification failed");
 
-        require(dataInfo.player != address(0), "NullsEggManager/The data obtained by HV is null");
+        require(dataInfo.player != address(0), "NullsRankManager/The data obtained by HV is null");
+        // 防止重复消费data
+        require(dataInfo.isOk, "NullsRankManager/Do not repeat consumption.");
+
         doReward(dataInfo.player, dataInfo.itemId, rv, dataInfo.challengerPetId);
+        
+        // isOk标志设置为false
+        dataInfo.isOk = false;
+        DataInfos[hv] = dataInfo;
         return true;
     }
 }

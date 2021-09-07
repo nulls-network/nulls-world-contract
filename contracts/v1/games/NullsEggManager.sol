@@ -41,6 +41,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         uint itemId;
         uint256 nonce;
         address player;
+        bool isOk;
     }
 
     mapping( bytes32 => DataInfo) DataInfos;
@@ -95,7 +96,8 @@ contract NullsEggManager is IOnlineGame, Ownable {
 
         require(dataInfo.total > 0, "NullsEggManager/The data obtained by HV is null");
         require(item == dataInfo.itemId, "NullsEggManager/Item verification failed");
-        
+        // 防止重复消费data
+        require(dataInfo.isOk, "NullsEggManager/Do not repeat consumption.");
 
         IERC20( EggToken ).transferFrom( dataInfo.player, address(this), dataInfo.total );
         // IERC20 egg = IERC20( EggToken ) ;
@@ -103,6 +105,10 @@ contract NullsEggManager is IOnlineGame, Ownable {
             _openOne( i , dataInfo.itemId , dataInfo.player , rv ) ;
         }
  
+        // isOk标志设置为false
+        dataInfo.isOk = false;
+        DataInfos[hv] = dataInfo;
+        
         return true;
     }
 
@@ -178,7 +184,8 @@ contract NullsEggManager is IOnlineGame, Ownable {
             total: total,
             itemId: itemId,
             nonce: nonce,
-            player: msg.sender
+            player: msg.sender,
+            isOk: true
         });
         emit EggNewNonce(itemId, hv, nonce, deadline);
     }
