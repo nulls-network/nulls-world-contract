@@ -6,7 +6,7 @@ import "../../interfaces/IOnlineGame.sol";
 import "../../interfaces/INullsEggToken.sol";
 import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/IERC20.sol";
-import "./INullsAfterBuyToken.sol";
+import "../../interfaces/INullsAfterBuyToken.sol";
 import "../../utils/Ownable.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../utils/Counters.sol";
@@ -145,8 +145,8 @@ contract NullsEggManager is IOnlineGame, Ownable {
         // after proccess 
         if( BuyTokenAfter != address(0) ) {
             //approve to after 
-            IERC20( token ).approve( address(this) , amount );
-            INullsAfterBuyToken( BuyTokenAfter ).doAfter( total, token, amount );
+            // IERC20( token ).approve( address(this) , amount );
+            INullsAfterBuyToken( BuyTokenAfter ).doAfter(sender, total, token, amount );
         }
     } 
 

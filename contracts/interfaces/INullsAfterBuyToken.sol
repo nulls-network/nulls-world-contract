@@ -3,6 +3,6 @@ pragma solidity ^0.8.0;
 
 interface INullsAfterBuyToken {
 
-    function doAfter(uint total , address payToken , uint payAmount ) external ;
+    function doAfter(address user, uint total , address payToken , uint payAmount ) external ;
 
 }
