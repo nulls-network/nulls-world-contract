@@ -82,6 +82,11 @@ contract NullsRankManager is IOnlineGame, Ownable {
 
     event RankNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
 
+    modifier isFromProxy() {
+        require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
+        _;
+    }
+
     // 设置休息时间
     function setRestTime( uint generalPetRestTime) external onlyOwner {
         GeneralPetRestTime = generalPetRestTime;
@@ -328,7 +333,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
     }
 
     // Receive proxy's message 
-    function notify( uint item , bytes32 hv , bytes32 rv ) external override returns ( bool ) {
+    function notify( uint item , bytes32 hv , bytes32 rv ) external override isFromProxy returns ( bool ) {
         // 获取业务数据
         DataInfo memory dataInfo = DataInfos[hv];
         require(item == dataInfo.itemId, "NullsEggManager/Item verification failed");
