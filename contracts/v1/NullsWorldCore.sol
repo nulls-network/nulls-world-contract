@@ -86,8 +86,8 @@ contract NullsWorldCore is IOnlineGame, Ownable {
         Items[ newItemId ] = sceneId ;
     }
 
-    function getNonce(uint256 itemId, bytes32 hv) public returns(uint256 nonce) {
-       return OnlineRouter.getNonce(itemId, hv);
+    function getNonce(uint256 itemId, bytes32 hv, address player) public returns(uint256 nonce) {
+       return OnlineRouter.getNonce(itemId, hv, player);
     }
 
     function test() external view override returns (bool) {

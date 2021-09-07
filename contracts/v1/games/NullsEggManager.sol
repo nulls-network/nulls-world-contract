@@ -177,7 +177,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         
 
         // 调用预注册方法
-        uint256 nonce = INullsWorldCore(Proxy).getNonce(itemId, hv);
+        uint256 nonce = INullsWorldCore(Proxy).getNonce(itemId, hv, msg.sender);
 
         // 存储
         DataInfos[hv] = DataInfo({

@@ -11,9 +11,9 @@ interface IOnlineRouter {
 
     event PublishPrivateKey( uint itemId , bytes privateKey , address sender ) ;
 
-    event GameWrite( uint itemId, bytes32 hv , bytes32 rv ) ;
+    event GameWrite( uint itemId, bytes32 hv , bytes32 rv , address player) ;
 
-    event newNonce(uint itemId, bytes32 hv, uint256 nonce);
+    event NewNonce(uint itemId, bytes32 hv, uint256 nonce, address player);
 
     function registGame( address game , string memory name , address oper ) external returns (uint gameId ) ;
 
@@ -23,7 +23,7 @@ interface IOnlineRouter {
 
     function publistAndNewItem( uint sceneId , uint oldItemId , bytes memory privateKey , address newPubKey ) external returns (uint newItemId ) ;
 
-    function getNonce(uint256 itemId, bytes32 hv) external returns(uint256 nonce);
+    function getNonce(uint256 itemId, bytes32 hv, address player) external returns(uint256 nonce);
 
     function gameinfo(uint256 itemId) external view returns (address gameAddr, address pubkey);
 
