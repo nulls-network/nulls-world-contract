@@ -87,7 +87,12 @@ contract NullsInvite is Ownable, INullsInvite {
         require(BuyEggCount[beInviter] == 0, "NullsInvite/The invited user already exists because they have purchased eggs.");
         // 被邀请过，证明不是新用户
         require(UserSuperior[beInviter] == address(0), "NullsInvite/The invited user already exists because it has been invited by another user");
+        // 邀请过其他用户，证明不是新用户
+        (uint32 one,,,,) = getInviteStatistics(beInviter);
+        require(one == 0, "NullsInvite/The invited user already exists because he invited other users");
 
+        // 注册上级关系
+        UserSuperior[beInviter] = inviter;
         updateInviteStatistics( inviter , 0 );
         emit Invite(beInviter, block.timestamp , inviter );
     }
