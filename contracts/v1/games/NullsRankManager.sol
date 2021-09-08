@@ -142,7 +142,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         uint256 nonce
     ) internal view returns (bytes32 v) {
 
-        v = keccak256(
+        bytes32 t = keccak256(
             abi.encode(
                 "nulls.online-play",
                 petId,
@@ -152,6 +152,9 @@ contract NullsRankManager is IOnlineGame, Ownable {
                 block.chainid
             )
         );
+        v = keccak256( abi.encode(
+            "\x19Ethereum Signed Message:\n32" , t
+        )) ;
     }
     
     // 创建擂台,擂台创建时自动创建一个Item

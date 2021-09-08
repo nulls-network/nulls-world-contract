@@ -1,18 +1,18 @@
 const hre = require("hardhat");
 
 // router合约地址
-const routerAddr = "0xab9dddC68e4dBE087165fda149aaFF26A833e30c"
+const routerAddr = "0x54065295d6f42e945A0E46D230DE88A1f55fBd0F"
 
 // 购买蛋的币种、Pk入场券币种
 let erc20USDTAddr = "0x04F535663110A392A6504839BEeD34E019FdB4E0"
-let erc20NullsTestAddr = "0x32b644b724dA440Db328E76cE7Bc56e78d4A83a0"
+let erc20NullsTestAddr = ""
 
 // 购买蛋的单价
 const eggPrice = 1 * 1000000;
 // pk入场券
 const pkPrice = 10 * 1000000;
 
-let petTokenAddr = "0xDf42DFA7FAA7648185998dc9A62b41F963016fc7"
+let petTokenAddr = ""
 let eggTokenAddr = ""
 
 // 游戏名称
@@ -29,17 +29,17 @@ const generalPetRestTime = 1;
 
 async function main() {
 
-  // await c20();
-  // let petT = await petToken() 
-  // let eggT = await eggToken()
+  await c20();
+  let petT = await petToken() 
+  let eggT = await eggToken()
 
   await petMarket()
 
-  // let core = await mainCore()
+  let core = await mainCore()
 
-  // let eggMng = await eggManager(core, petT, eggT)
+  let eggMng = await eggManager(core, petT, eggT)
 
-  // let ring = await ringManager(core)
+  let ring = await ringManager(core)
   
   console.log("完成!")
 }
@@ -119,16 +119,16 @@ async function eggToken() {
 
 async function ringManager(core) {
   
-  let ring = await deployContract("NullsRingManager")
+  let ring = await deployContract("NullsRankManager")
 
   // 配置newItem白名单权限
   let txAddWhiteList = await core.addNewItemWhiteList(ring.address)
   await txAddWhiteList.wait();
 
   // 配置支持的币种(测试，入场资金10U，开擂台花费50U/100U)
-  let txHashAddRingToken = await ring.addRingToken(erc20NullsTestAddr, pkPrice)
+  let txHashAddRingToken = await ring.addRankToken(erc20NullsTestAddr, pkPrice)
   await txHashAddRingToken.wait()
-  txHashAddRingToken = await ring.addRingToken(erc20USDTAddr, pkPrice)
+  txHashAddRingToken = await ring.addRankToken(erc20USDTAddr, pkPrice)
   await txHashAddRingToken.wait()
 
   // 配置代理，并创建场景
