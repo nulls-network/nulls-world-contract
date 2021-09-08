@@ -74,7 +74,7 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
             if( isPartner == false ) {
                 superior = address(0) ; // return
             }
-            doReward(current, total, index);
+            doReward(superior, total, index);
         }
     }   
 

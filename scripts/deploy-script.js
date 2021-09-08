@@ -5,14 +5,14 @@ const routerAddr = "0xab9dddC68e4dBE087165fda149aaFF26A833e30c"
 
 // 购买蛋的币种、Pk入场券币种
 let erc20USDTAddr = "0x04F535663110A392A6504839BEeD34E019FdB4E0"
-let erc20NullsTestAddr = ""
+let erc20NullsTestAddr = "0x32b644b724dA440Db328E76cE7Bc56e78d4A83a0"
 
 // 购买蛋的单价
 const eggPrice = 1 * 1000000;
 // pk入场券
 const pkPrice = 10 * 1000000;
 
-let petTokenAddr = ""
+let petTokenAddr = "0xDf42DFA7FAA7648185998dc9A62b41F963016fc7"
 let eggTokenAddr = ""
 
 // 游戏名称
@@ -29,15 +29,17 @@ const generalPetRestTime = 1;
 
 async function main() {
 
-  await c20();
-  let petT = await petToken() 
-  let eggT = await eggToken()
+  // await c20();
+  // let petT = await petToken() 
+  // let eggT = await eggToken()
 
-  let core = await mainCore()
+  await petMarket()
 
-  let eggMng = await eggManager(core, petT, eggT)
+  // let core = await mainCore()
 
-  let ring = await ringManager(core)
+  // let eggMng = await eggManager(core, petT, eggT)
+
+  // let ring = await ringManager(core)
   
   console.log("完成!")
 }
@@ -51,6 +53,13 @@ async function deployContract( contractName , ... args ) {
   console.log(` ${contractName} deployed to : ${entity.address} ${args}`)
 
   return entity 
+}
+
+async function petMarket() {
+  let market = await deployContract("NullsWorldMarket")
+  await market.setPetToken(petTokenAddr)
+  await market.setSupportedToken(erc20USDTAddr)
+  await market.setSupportedToken(erc20NullsTestAddr)
 }
 
 async function c20() {
