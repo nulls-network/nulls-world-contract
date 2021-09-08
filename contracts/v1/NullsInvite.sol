@@ -24,6 +24,8 @@ contract NullsInvite is Ownable, INullsInvite {
 
     // 某个用户购买恐龙蛋次数
     mapping(address => uint) public BuyEggCount;
+    // 某个用户的下级购买恐龙蛋的数量
+    mapping(address => uint) public ValidInviteCount;
 
     mapping(address => bool ) public Partner ;
 
@@ -36,7 +38,9 @@ contract NullsInvite is Ownable, INullsInvite {
     event NewPartner(address player, uint timestamp);
 
     // 成为合伙人的条件，以下条件满足一个即可
+    // 自己买蛋的总数
     uint32 MinBuyEggNumber = 3;
+    // 下级买蛋的总数
     uint32 MinInviteNumber = 3;
 
     modifier onlyPromotionContract() {
@@ -60,7 +64,7 @@ contract NullsInvite is Ownable, INullsInvite {
             return address(0) ;
         }
         
-        if( index >= 3 ) {
+        if( index > 2 ) {
             return address(0) ;
         }
 
@@ -84,13 +88,33 @@ contract NullsInvite is Ownable, INullsInvite {
         // 被邀请过，证明不是新用户
         require(UserSuperior[beInviter] == address(0), "NullsInvite/The invited user already exists because it has been invited by another user");
 
-        updateInviteStatistics( inviter , 1 );
+        updateInviteStatistics( inviter , 0 );
         emit Invite(beInviter, block.timestamp , inviter );
     }
 
     // 购买恐龙蛋后的处理逻辑，上层活动合约调用此接口
     // 在这里，只做最底层的计数存储，其他逻辑交给上层活动合约合约去做
     function doAfter(address user, uint count) external override onlyPromotionContract {
+        
+        if (count == 0) {
+            return;
+        }
+
+        // 判断当前用户是否是首次买蛋
+        if (BuyEggCount[user] == 0) {
+            address superior = UserSuperior[user];
+            if (superior != address(0)) {
+                
+                ValidInviteCount[superior] += 1;
+                ( , , , , bool superiorIsPartner )  = getInviteStatistics(superior);
+                if (superiorIsPartner == false) {
+                    if ( ValidInviteCount[superior] >= MinInviteNumber ) {
+                        Partner[superior] = true;
+                        emit NewPartner( superior , block.timestamp ) ;
+                    }
+                }
+            }
+        }
         
         bool isPartner = Partner[user];
         BuyEggCount[user] += count;
