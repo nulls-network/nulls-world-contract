@@ -2,6 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface INullsInvite {
-    function onBuyEgg(address user, uint count) external;
-    function getInvites(address user) external view returns(address one, uint8 oneType, address two, uint8 twoType, address three, uint threeType);
-}
+    function doAfter(address user, uint count) external ;
+    function getInviteStatistics( address addr ) external view returns ( uint32 one , uint32 two , uint32 three , address superior , bool isPartner ) ;
+} 
