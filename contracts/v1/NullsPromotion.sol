@@ -81,7 +81,7 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
     function doAfter(address buyer, uint total , address payToken , uint payAmount ) external override 
         updateStatistics( buyer , total ) onlyEggContract {
 
-        if( RewardStartTime < block.timestamp || RewardEndTime > block.timestamp ) {
+        if( block.timestamp < RewardStartTime ||  block.timestamp > RewardEndTime ) {
             return ;
         }
 
