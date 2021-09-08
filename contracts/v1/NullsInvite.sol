@@ -92,19 +92,11 @@ contract NullsInvite is Ownable, INullsInvite {
         emit Invite(beInviter, block.timestamp , inviter );
     }
 
-    // 购买恐龙蛋后的处理逻辑，上层活动合约调用此接口
-    // 在这里，只做最底层的计数存储，其他逻辑交给上层活动合约合约去做
-    function doAfter(address user, uint count) external override onlyPromotionContract {
-        
-        if (count == 0) {
-            return;
-        }
-
+    function checkSuperiorBecomePartner(address currentUser) internal {
         // 判断当前用户是否是首次买蛋
-        if (BuyEggCount[user] == 0) {
-            address superior = UserSuperior[user];
+        if (BuyEggCount[currentUser] == 0) {
+            address superior = UserSuperior[currentUser];
             if (superior != address(0)) {
-                
                 ValidInviteCount[superior] += 1;
                 ( , , , , bool superiorIsPartner )  = getInviteStatistics(superior);
                 if (superiorIsPartner == false) {
@@ -115,16 +107,31 @@ contract NullsInvite is Ownable, INullsInvite {
                 }
             }
         }
-        
-        bool isPartner = Partner[user];
-        BuyEggCount[user] += count;
+    }
 
+    function checkUserBecomePartner(address currentUser) internal {
+        bool isPartner = Partner[currentUser];
+    
         if( isPartner == false ) {
-            if( BuyEggCount[user] >= MinBuyEggNumber ) {
-                Partner[user] = true ;
-                emit NewPartner( user , block.timestamp ) ;
+            if( BuyEggCount[currentUser] >= MinBuyEggNumber ) {
+                Partner[currentUser] = true ;
+                emit NewPartner( currentUser , block.timestamp ) ;
             }
         }
+    }
+
+    // 购买恐龙蛋后的处理逻辑，上层活动合约调用此接口
+    // 在这里，只做最底层的计数存储，其他逻辑交给上层活动合约合约去做
+    function doAfter(address user, uint count) external override onlyPromotionContract {
+        
+        if (count == 0) {
+            return;
+        }
+
+        BuyEggCount[user] += count;
+
+        checkSuperiorBecomePartner(user);
+        checkUserBecomePartner(user);
 
     }
 }
