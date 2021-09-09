@@ -7,14 +7,6 @@ import "../interfaces/INullsInvite.sol";
 // 邀请合约，存储邀请关系
 contract NullsInvite is Ownable, INullsInvite {
     
-    // struct InviteStatistics {
-    //     // 一级邀请人数
-    //     uint countOne;
-    //     // 二级邀请人数
-    //     uint countTwo;
-    //     // 三级邀请人数
-    //     uint countThree;
-    // }
  
     // 邀请计数。存储某个用户的邀请计数详情
     mapping(address => mapping(uint32 => uint32)) public UserinviteStatistics;
@@ -24,7 +16,7 @@ contract NullsInvite is Ownable, INullsInvite {
 
     // 某个用户购买恐龙蛋次数
     mapping(address => uint) public BuyEggCount;
-    // 某个用户的下级购买恐龙蛋的数量
+    // 某个用户的有效邀请人数
     mapping(address => uint) public ValidInviteCount;
 
     mapping(address => bool ) public Partner ;

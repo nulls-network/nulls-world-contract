@@ -55,7 +55,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
     event EggNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
 
     modifier isFromProxy() {
-        require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
+        require(msg.sender == Proxy, "NullsEggManager/Is not from proxy.");
         _;
     }
 
@@ -66,6 +66,13 @@ contract NullsEggManager is IOnlineGame, Ownable {
 
     function getSceneId() external view returns(uint sceneId) {
         return SceneId;
+    }
+
+    // 根据币种查询买蛋单价
+    function getPrice(address token) external view returns(uint price) {
+        BuyToken memory buyToken =  BuyTokens[token];
+        require(buyToken.isOk, "NullsEggManager/Unsupported token.");
+        price = buyToken.amount;
     }
 
     function setPetToken( address eggToken , address petToken ) external onlyOwner {

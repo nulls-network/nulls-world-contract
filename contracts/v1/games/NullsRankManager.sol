@@ -116,6 +116,12 @@ contract NullsRankManager is IOnlineGame, Ownable {
         return SceneId;
     }
 
+    function getPrice(address token) external view returns(uint price) {
+        RankTokenConfig memory rankTokenConfig = RankTokens[token];
+        require(rankTokenConfig.isOk, "NullsRankManager/Unsupported token");
+        price = rankTokenConfig.minInitialCapital;
+    }
+
     function setPetToken( address petToken ) external onlyOwner {
         PetToken = petToken ;
     }
