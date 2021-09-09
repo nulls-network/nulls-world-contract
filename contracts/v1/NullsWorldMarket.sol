@@ -69,7 +69,7 @@ contract NullsWorldMarket is Ownable{
         sellInfo.seller = msg.sender;
         // 从未售卖过= 0+1
         sellInfo.count += 1;
-
+        PetSellInfos[petId] = sellInfo;
         emit SellPet(petId, sellInfo.count, tokenAddr , price, msg.sender, block.timestamp);
     }
 
@@ -110,7 +110,7 @@ contract NullsWorldMarket is Ownable{
 
         // 置位
         sellInfo.isSell = false;
-
+        PetSellInfos[petId] = sellInfo;
         // 发出事件
         emit SuccessSell(petId, sellInfo.count, sellInfo.seller, msg.sender, block.timestamp);
     }
