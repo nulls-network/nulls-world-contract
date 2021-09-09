@@ -46,7 +46,7 @@ contract NullsInvite is Ownable, INullsInvite {
         MinInviteNumber = inviteNumber;
     }
 
-    // 添加活动合约列表
+    // 设置活动合约
     function addPromotionContract(address contractAddr) external onlyOwner {
         PromotionContract = contractAddr;
     }

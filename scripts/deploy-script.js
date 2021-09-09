@@ -1,4 +1,4 @@
-/// 合约一键部署脚本并初始化脚本
+/// 合约一键部署并初始化脚本
 /// 如果想要部署某一合约，请在config.json文件中将该合约地址对应的value值设置为""
 /// 如果合约地址存在，则不进行部署操作而是进行连接操作
 const hre = require("hardhat")
@@ -29,12 +29,31 @@ const petPkName = "Nulls-Pk"
 // 普通宠物休息时间
 const generalPetRestTime = 1
 
+// 成为合伙人的条件，以下满足一个即可
+const minBuyEggNumber = 3
+const minInviteNumber = 3
+
+
+// 预售活动奖励的 token 总数
+const promotionTotal = 210000 * 1000000
+// 预售活动开始时间(UTC时间)
+const promotionStartTime = new Date(Date.UTC(2021, 9 - 1, 9, 0, 0, 0)).getTime() / 1000
+// const promotionStartTime = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
+// 预售活动结束时间
+const promotionEndTime = new Date(Date.UTC(2021, 9 - 1, 25, 0, 0, 0)).getTime() / 1000
+// 预售期蛋购买者和其三级关系奖励金额
+const buyer = 40 * 1000000
+const one = 30 * 1000000
+const two = 20 * 1000000
+const three = 10 * 1000000
+
 let rwaJsonData;
 
 async function main() {
   
   readJsonFromFile()
 
+  // 用于测试期间支付购买宠物、pk的token
   let testC20 = await c20();
   let petT = await petToken() 
   let eggT = await eggToken()
@@ -43,10 +62,14 @@ async function main() {
 
   let core = await mainCore()
 
-  await eggManager(core, petT, eggT, testC20)
+  let eggM = await eggManager(core, petT, eggT, testC20)
 
   await ringManager(core,testC20, petT)
   
+  let mainToken = await nullsToken()
+  let nullsInvite = await invite()
+  await promotion(nullsInvite, eggM, mainToken)
+
   console.log(rwaJsonData)
   writeJosnToConfigFile()
   console.log("完成!")
@@ -171,6 +194,8 @@ async function eggManager(core, petT, eggT, testC20){
 
   let sceneId = await eggmanager.getSceneId()
   console.log("eggmanager sceneId = ", sceneId)
+
+  return obj
 }
 
 async function petToken() {
@@ -222,6 +247,54 @@ async function ringManager(core, testC20, petT) {
   console.log("ringManager sceneId = ", sceneId)
 
   return ring
+}
+
+// 跟随nulls发行的代币，主要用途是锁仓获取奖池奖金，获取方式是通过活动获取
+async function nullsToken() {
+  const contractAddresskey = "NullsMainToken"
+  const contractName = "NullsWorldToken"
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+  // obj.contract.setBeginTime()
+  const [owner] = await hre.ethers.getSigners()
+  await obj.contract.modifierOper(owner.address)
+  return obj
+}
+
+async function invite() {
+  const contractAddresskey = "NullsInvite"
+  const contractName = "NullsInvite"
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+
+  // 设置成为合伙人的条件
+  let invite = obj.contract
+  await invite.setPartnerCondition(minBuyEggNumber, minInviteNumber)
+
+  return obj
+}
+
+async function promotion(nullsInvite, eggM, mainToken) {
+  const contractAddresskey = "NullsPromotion"
+  const contractName = "NullsPromotion"
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+
+  if (eggM.flag || obj.flag) {
+    // 对购买蛋操作设置后置处理器
+    await eggM.contract.setAfterProccess(obj.contract.address)
+  }
+
+  if (nullsInvite.flag || obj.flag) {
+    // 设置invite的活动合约
+    await nullsInvite.contract.addPromotionContract(obj.contract.address)
+  }
+
+  if (mainToken.flag || obj.flag) {
+    // 释放token给活动合约
+    await mainToken.contract.mint(obj.contract.address, promotionTotal)
+  }
+
+  await obj.contract.setReward(mainToken.contract.address, promotionTotal, promotionStartTime, promotionEndTime)
+  await obj.contract.setBaseInfo(nullsInvite.contract.address, eggM.contract.address)
+  await obj.contract.setRewardValue(buyer, one, two, three)
 }
 
 main()
