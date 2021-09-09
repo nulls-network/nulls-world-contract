@@ -50,7 +50,6 @@ async function main() {
   console.log(rwaJsonData)
   writeJosnToConfigFile()
   console.log("完成!")
-  exit(0)
 }
 
 function readJsonFromFile() {

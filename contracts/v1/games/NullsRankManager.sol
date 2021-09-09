@@ -71,6 +71,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         uint256 nonce;
         address player;
         bool isOk;
+        string uuid;
     }
 
     mapping( bytes32 => DataInfo) DataInfos;
@@ -78,8 +79,8 @@ contract NullsRankManager is IOnlineGame, Ownable {
     // 创建擂台，itemId、创建擂台的宠物、擂台支付token、初始资金、创建者、倍率、创建时的公钥
     event NewRank(uint256 itemId, uint petId, address token, uint initialCapital, address creater, uint8 multiple, address publicKey);
 
-    // 擂台状态更新,itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值
-    event RankUpdate(uint256 itemId, uint challengerPetId, address challenger, uint bonusPool, bytes32 rv, bool isWin , uint value);
+    // 擂台状态更新,itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值、uuid用于找回pk结果
+    event RankUpdate(uint256 itemId, uint challengerPetId, address challenger, uint bonusPool, bytes32 rv, bool isWin , uint value, string uuid);
 
     event RankNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
 
@@ -235,7 +236,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         }
     }
 
-    function doReward(address player, uint256 itemId, bytes32 rv, uint challengerPetId) internal {
+    function doReward(address player, uint256 itemId, bytes32 rv, uint challengerPetId, string memory uuid) internal {
         Rank memory rank = Ranks[itemId];
         // 判断擂台奖金池
         require(rank.bonusPool > 0, "NullsRankManager/The Rank bonus pool is 0");
@@ -280,19 +281,19 @@ contract NullsRankManager is IOnlineGame, Ownable {
                 // 解锁守擂宠物
                 PetLocked[rank.petId] = false ;
 
-                emit RankUpdate(itemId, challengerPetId, player, 0, rv, true, rank.bonusPool);
+                emit RankUpdate(itemId, challengerPetId, player, 0, rv, true, rank.bonusPool, uuid);
                 rank.bonusPool = 0;     
             } else {
                 // 只能赢走一半
                 uint poolBalance = rank.bonusPool / 2;
                 // 给挑战者转账
                 IERC20( rank.token ).transfer( player, poolBalance );
-                emit RankUpdate(itemId, challengerPetId, player, poolBalance , rv, true , poolBalance );
+                emit RankUpdate(itemId, challengerPetId, player, poolBalance , rv, true , poolBalance, uuid );
                 rank.bonusPool = poolBalance;
             }
         } else {
             // 庄家获胜
-            emit RankUpdate(itemId, challengerPetId, player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10);
+            emit RankUpdate(itemId, challengerPetId, player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10, uuid);
         }
 
         Ranks[itemId] = rank;
@@ -303,7 +304,8 @@ contract NullsRankManager is IOnlineGame, Ownable {
     function pk(
         uint256 itemId,
         uint challengerPetId,
-        uint256 deadline
+        uint256 deadline,
+        string calldata uuid
     ) external {
 
         require(block.timestamp <= deadline, "NullsRankManager: expired deadline");
@@ -337,7 +339,8 @@ contract NullsRankManager is IOnlineGame, Ownable {
             itemId: itemId,
             nonce: nonce,
             player: msg.sender,
-            isOk: true
+            isOk: true,
+            uuid: uuid
         });
 
         emit RankNewNonce(itemId, hv, nonce, deadline) ;
@@ -353,7 +356,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         // 防止重复消费data
         require(dataInfo.isOk, "NullsRankManager/Do not repeat consumption.");
 
-        doReward(dataInfo.player, dataInfo.itemId, rv, dataInfo.challengerPetId);
+        doReward(dataInfo.player, dataInfo.itemId, rv, dataInfo.challengerPetId, dataInfo.uuid);
         
         // isOk标志设置为false
         dataInfo.isOk = false;
