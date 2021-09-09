@@ -152,7 +152,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
                 block.chainid
             )
         );
-        v = keccak256( abi.encode(
+        v = keccak256( abi.encodePacked(
             "\x19Ethereum Signed Message:\n32" , t
         )) ;
     }

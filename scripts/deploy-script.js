@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 // router合约地址
-const routerAddr = "0x54065295d6f42e945A0E46D230DE88A1f55fBd0F"
+const routerAddr = "0x46FBCbF09747eaC8aA6ABA8F0832B26231B7829d"
 
 // 购买蛋的币种、Pk入场券币种
 let erc20USDTAddr = "0x04F535663110A392A6504839BEeD34E019FdB4E0"
