@@ -1,50 +1,70 @@
-const hre = require("hardhat");
+/// 合约一键部署脚本并初始化脚本
+/// 如果想要部署某一合约，请在config.json文件中将该合约地址对应的value值设置为""
+/// 如果合约地址存在，则不进行部署操作而是进行连接操作
+const hre = require("hardhat")
+const fs = require("fs");
+const { exit } = require("process");
 
-// router合约地址
-const routerAddr = "0x46FBCbF09747eaC8aA6ABA8F0832B26231B7829d"
+const configFile = "./scripts/config.json"
 
-// 购买蛋的币种、Pk入场券币种
-let erc20USDTAddr = "0x04F535663110A392A6504839BEeD34E019FdB4E0"
-let erc20NullsTestAddr = ""
+const prefixKey = "contrat_address"
+
+// router合约是否是新部署的，如果是的话，游戏和item一定需要重新注册
+const newRouterContractFlag = false
 
 // 购买蛋的单价
-const eggPrice = 1 * 1000000;
+const eggPrice = 1 * 1000000
 // pk入场券
-const pkPrice = 10 * 1000000;
-
-let petTokenAddr = ""
-let eggTokenAddr = ""
+const pkPrice = 10 * 1000000
 
 // 游戏名称
 const gameName = "Nulls"
 
 // 开蛋场景名称
-const eggMngName = "Nulls-OpenEgg";
+const eggMngName = "Nulls-OpenEgg"
 
 // PK场景名称
-const petPkName = "Nulls-Pk";
+const petPkName = "Nulls-Pk"
 
 // 普通宠物休息时间
-const generalPetRestTime = 1;
+const generalPetRestTime = 1
+
+let rwaJsonData;
 
 async function main() {
+  
+  readJsonFromFile()
 
-  await c20();
+  let testC20 = await c20();
   let petT = await petToken() 
   let eggT = await eggToken()
 
-  await petMarket()
+  await petMarket(petT, testC20)
 
   let core = await mainCore()
 
-  let eggMng = await eggManager(core, petT, eggT)
+  await eggManager(core, petT, eggT, testC20)
 
-  let ring = await ringManager(core)
+  await ringManager(core,testC20, petT)
   
+  console.log(rwaJsonData)
+  writeJosnToConfigFile()
   console.log("完成!")
+  exit(0)
 }
 
-async function deployContract( contractName , ... args ) {
+function readJsonFromFile() {
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+}
+
+function writeJosnToConfigFile() {
+  console.log("写入配置文件")
+  let data = JSON.stringify(rwaJsonData, null, 4);
+  fs.writeFileSync(configFile, data);
+}
+
+async function deployContract( contractName , args ) {
   let Entity = await hre.ethers.getContractFactory( contractName )
   let entity = await Entity.deploy( ...args )
 
@@ -55,88 +75,146 @@ async function deployContract( contractName , ... args ) {
   return entity 
 }
 
-async function petMarket() {
-  let market = await deployContract("NullsWorldMarket")
-  await market.setPetToken(petTokenAddr)
-  await market.setSupportedToken(erc20USDTAddr)
-  await market.setSupportedToken(erc20NullsTestAddr)
+async function connectContract(contractName, contractAddress) {
+  const [owner] = await hre.ethers.getSigners();
+  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, owner);
+
+  console.log(`connected ${contractName} address is : ${contract.address}`)
+  return contract;
+}
+
+function isEmpty(key) {
+  return rwaJsonData[prefixKey][key] === '' || rwaJsonData[prefixKey][key] === null
+}
+
+async function connectOrDeployContract(contractName, contractAddressKey, ... args) {
+  let c = isEmpty(contractAddressKey) ? await deployContract(contractName, args) : await connectContract(contractName, rwaJsonData[prefixKey][contractAddressKey])
+  let isNewContract = isEmpty(contractAddressKey);
+  rwaJsonData[prefixKey][contractAddressKey] = c.address
+  return {
+    contract: c,
+    flag: isNewContract      
+  }
+}
+
+async function petMarket(petToken, nullsErc20TestToken) {
+  const contractAddresskey = "NullsWorldMarket"
+  const contractName = "NullsWorldMarket"
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+  let market = obj.contract
+  await market.setPetToken(petToken.contract.address)
+  await market.setSupportedToken(rwaJsonData[prefixKey]["USDT"])
+  await market.setSupportedToken(nullsErc20TestToken.contract.address)
 }
 
 async function c20() {
-  let c20 = await deployContract("NullsERC20Token")
-  erc20NullsTestAddr = c20.address;
-  return c20;
+  const contractAddresskey = "NullsErc20TestToken"
+  const contractName = "NullsERC20Token"
+  return await connectOrDeployContract(contractName, contractAddresskey)
 }
 
 async function mainCore() {
-  let core = await deployContract("NullsWorldCore" , routerAddr )
+  const contractAddresskey = "worldCore_address"
+  const contractName = "NullsWorldCore"
+
+  let obj = await connectOrDeployContract(contractName, contractAddresskey , rwaJsonData[prefixKey]["router_address"] )
+  let core = obj.contract
+  let flag = obj.flag
+
+  // router合约重新部署过或core合约重新部署过，都需要重新注册游戏
+  if (newRouterContractFlag || flag) {
     // 注册游戏
     let txHash = await core.registerGame(gameName)
     await txHash.wait()
-
-  return core;
+  }
+  return obj;
 }
 
-async function eggManager(core, petT, eggT){
+async function eggManager(core, petT, eggT, testC20){
+
+  const contractAddresskey = "EggManager_address"
+  const contractName = "NullsEggManager"
   
-  let eggmanager = await deployContract("NullsEggManager")
+  let obj = await connectOrDeployContract(contractName, contractAddresskey )
+  let eggmanager = obj.contract;
 
-  // 配置petToken operator
-  await petT.modifyOper(eggmanager.address)
-  // 配置eggToken operator
-  await eggT.modifierOper(eggmanager.address)
-
-  // 配置newItem白名单权限
-  let txAddWhiteList = await core.addNewItemWhiteList(eggmanager.address)
-  await txAddWhiteList.wait()
-
-  // 设置eggToken和petToken
-  await eggmanager.setPetToken(eggTokenAddr,petTokenAddr)
-
+  if (petT.falg || obj.flag) {
+    // 配置petToken operator
+    await petT.contract.modifyOper(eggmanager.address)
+  }
+  
+  if (eggT.falg || obj.flag) {
+    // 配置eggToken operator
+    await eggT.contract.modifierOper(eggmanager.address)
+  }
+  
+  if (core.flag || obj.flag) {
+    // 配置newItem白名单权限
+    let txAddWhiteList = await core.contract.addNewItemWhiteList(eggmanager.address)
+    await txAddWhiteList.wait()
+  }
+  
+  if (obj.flag || petT.flag || eggT.flag) {
+    // 设置eggToken和petToken
+    await eggmanager.setPetToken(eggT.contract.address, petT.contract.address)
+  }
+  
   // 设置购买宠物币种和金额
-  await eggmanager.setBuyToken(erc20NullsTestAddr, eggPrice);
-  await eggmanager.setBuyToken(erc20USDTAddr, eggPrice);
+  await eggmanager.setBuyToken(testC20.contract.address, eggPrice);
+  await eggmanager.setBuyToken(rwaJsonData[prefixKey]["USDT"], eggPrice);
 
-  // 设置代理，并创建场景
-  let txHashSetProxy = await eggmanager.setProxy(core.address, eggMngName)
-  await txHashSetProxy.wait()
+  // eggManager合约重新部署过 或 core合约重新部署过 或 router合约重新部署过，都需要重新注册场景
+  if (obj.flag || core.flag || newRouterContractFlag) {
+    // 设置代理，并创建场景
+    let txHashSetProxy = await eggmanager.setProxy(core.contract.address, eggMngName)
+    await txHashSetProxy.wait()
+  }
 
   let sceneId = await eggmanager.getSceneId()
   console.log("eggmanager sceneId = ", sceneId)
 }
 
 async function petToken() {
-  let pt = await deployContract("NullsPetToken")
-  petTokenAddr = pt.address
-  return pt
+  const contractAddresskey = "petToken_address"
+  const contractName = "NullsPetToken"
+  return await connectOrDeployContract(contractName, contractAddresskey)
 }
 
 async function eggToken() {
-  let et = await deployContract("NullsEggToken")
-  eggTokenAddr = et.address
-  return et
+  const contractAddresskey = "EggToken_address"
+  const contractName = "NullsEggToken"
+  return await connectOrDeployContract(contractName, contractAddresskey)
 }
 
-async function ringManager(core) {
-  
-  let ring = await deployContract("NullsRankManager")
+async function ringManager(core, testC20, petT) {
+  const contractAddresskey = "RingManager_address"
+  const contractName = "NullsRankManager"
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+  let ring = obj.contract
 
-  // 配置newItem白名单权限
-  let txAddWhiteList = await core.addNewItemWhiteList(ring.address)
-  await txAddWhiteList.wait();
+  if (core.flag || obj.flag) {
+    // 配置newItem白名单权限
+    let txAddWhiteList = await core.contract.addNewItemWhiteList(ring.address)
+    await txAddWhiteList.wait();
+  }
 
   // 配置支持的币种(测试，入场资金10U，开擂台花费50U/100U)
-  let txHashAddRingToken = await ring.addRankToken(erc20NullsTestAddr, pkPrice)
+  let txHashAddRingToken = await ring.addRankToken(testC20.contract.address, pkPrice)
   await txHashAddRingToken.wait()
-  txHashAddRingToken = await ring.addRankToken(erc20USDTAddr, pkPrice)
+  txHashAddRingToken = await ring.addRankToken(rwaJsonData[prefixKey]["USDT"], pkPrice)
   await txHashAddRingToken.wait()
 
-  // 配置代理，并创建场景
-  let txHashSetProxy = await ring.setProxy(core.address, petPkName)
-  await txHashSetProxy.wait()
-  // 配置pet合约地址
-  let txHashSetPetToken = await ring.setPetToken(petTokenAddr)
-  let waitRet = await txHashSetPetToken.wait()
+  if (obj.flag || core.flag || newRouterContractFlag) {
+    // 配置代理，并创建场景
+    let txHashSetProxy = await ring.setProxy(core.contract.address, petPkName)
+    await txHashSetProxy.wait()
+  }
+  
+  if (obj.flag || petT.flag) {
+    // 配置pet合约地址
+    let txHashSetPetToken = await ring.setPetToken(petT.contract.address)
+    let waitRet = await txHashSetPetToken.wait()
+  }  
 
   // 配置普通宠物休息时间
   await ring.setRestTime(generalPetRestTime)

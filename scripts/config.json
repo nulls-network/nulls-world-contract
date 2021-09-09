@@ -1,0 +1,22 @@
+{
+    "contrat_address": {
+        "router_address": "0x46FBCbF09747eaC8aA6ABA8F0832B26231B7829d",
+        "storage_address": "0x3F88D4b54F823363261629ebbA358280Fc1316c0",
+        "petToken_address": "0x6c8740fd77692FBce3c9A9813B8F9bBC89aaC928",
+        "EggToken_address": "0x21782523b5C6b7Cd00A284351af9C3C4cfDecB1e",
+        "worldCore_address": "0x23B08841ceE1f55e92A3e0F46c045740EbE46D2d",
+        "EggManager_address": "0x2Eeba75b34376e314756eDea782657E79272fa3E",
+        "RingManager_address": "0xC936420310215A5673Aa4c4A05Be7044919C6568",
+        "USDT": "0x04F535663110A392A6504839BEeD34E019FdB4E0",
+        "NullsErc20TestToken": "0xebfB355658E07800b020784202051b83ed9DaB2A",
+        "NullsWorldMarket": "0xF21432E33C6BB6AF1730063f2c963eb5Ca5926D7"
+    },
+    "netword": "https://http-testnet.huobichain.com",
+    "contract_deploy_private": "0xb0acc12ed1ff644b0c0b5f823870ae032ea9d32a8ff7f0de5390787664adfeff",
+    "account": {
+        "private_key": "0x03a6cecb584a4f7175a66edd3e4eab44b06cd633a2f88359302515244c0f7449",
+        "public_key": "0xeDdc51b795220FAB767Ee17c779345AE2177C4EA"
+    },
+    "sceneId": "0x12",
+    "itemId": "0x08"
+}
