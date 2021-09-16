@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import "../utils/Ownable.sol";
 import "../utils/Counters.sol";
 import "../ERC721.sol";
-import "./NullWorldMarket.sol";
+import "./NullWorldMarketV2.sol";
 
-contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
+contract NullsPetTokenV2 is ERC721, Ownable, NullWorldMarketV2 {
     using Counters for Counters.Counter;
     Counters.Counter private TokenIds;
 
@@ -51,7 +51,7 @@ contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
         return BaseURI;
     }
 
-    function _checkSell(uint256 petId) internal override {
+    function _checkSell(uint256 petId) internal view override {
         require(
             _isApprovedOrOwner(_msgSender(), petId),
             "ERC721: transfer caller is not owner nor approved"
@@ -67,8 +67,8 @@ contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
     }
 
     function _beforeTokenTransfer(
-        address from,
-        address to,
+        address ,
+        address ,
         uint256 petId
     ) internal override {
         _unSellPet(petId);
