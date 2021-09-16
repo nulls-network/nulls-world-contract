@@ -46,6 +46,10 @@ contract NullsWorldToken is ERC20 {
         Owner = msg.sender ;
     }
 
+    function mint( address player , uint total ) external onlyOper {
+        _mint( player , total );
+    }
+    
     function modifierOwner( address owner ) external onlyOwner {
         Owner = owner ;
     }
