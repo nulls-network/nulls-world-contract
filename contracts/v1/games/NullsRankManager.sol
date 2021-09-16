@@ -295,7 +295,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
             // 庄家获胜
             emit RankUpdate(itemId, challengerPetId, player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10, uuid);
         }
-
+        rank.total += 1;
         Ranks[itemId] = rank;
         
     }

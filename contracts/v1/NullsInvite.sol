@@ -51,17 +51,17 @@ contract NullsInvite is Ownable, INullsInvite {
         PromotionContract = contractAddr;
     }
 
-    function updateInviteStatistics( address current , uint32 index ) internal returns ( address superior ) {
-        if( superior == address(0) ) {
-            return address(0) ;
+    function updateInviteStatistics( address current , uint32 index ) internal {
+        if( current == address(0) ) {
+            return;
         }
         
         if( index > 2 ) {
-            return address(0) ;
+            return;
         }
 
         UserinviteStatistics[current][index] = UserinviteStatistics[current][index] + 1  ; 
-        superior = UserSuperior[current] ;
+        address superior = UserSuperior[current] ;
         return updateInviteStatistics( superior , index ++ ) ;
     }
 
@@ -125,9 +125,8 @@ contract NullsInvite is Ownable, INullsInvite {
             return;
         }
 
-        BuyEggCount[user] += count;
-
         checkSuperiorBecomePartner(user);
+        BuyEggCount[user] += count;
         checkUserBecomePartner(user);
 
     }
