@@ -51,21 +51,19 @@ contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
         return BaseURI;
     }
 
-    function _SellApproved(uint256 petId) internal override {
-        if (getApproved(petId) != address(this)) {
-            approve(address(this), petId);
-        }
+    function _checkSell(uint256 petId) internal override {
+        address owner = ownerOf(petId);
+        require(
+            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
+            "ERC721: approve caller is not owner nor approved for all"
+        );
     }
 
-    function _MarketBuy(
+    function _buyPet(
         address from,
         address to,
         uint256 petId
     ) internal override {
-        require(
-            getApproved(petId) == address(this),
-            "NullsPetTrade/Current pet is not approved."
-        );
         _transfer(from, to, petId);
     }
 
