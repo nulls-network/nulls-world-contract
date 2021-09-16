@@ -20,7 +20,7 @@ contract NullsERC20Token is ERC20 {
     constructor() ERC20("NullsERC20 Token ","T-NET") {
         Owner = msg.sender ;
         Oper = msg.sender ;
-        setDecimals(0);
+        setDecimals(6);
     }
 
     function modifierOwner( address owner ) external onlyOwner {

@@ -82,7 +82,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
     // 擂台状态更新,itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值、uuid用于找回pk结果
     event RankUpdate(uint256 itemId, uint challengerPetId, address challenger, uint bonusPool, bytes32 rv, bool isWin , uint value, string uuid);
 
-    event RankNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
+    event RankNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline, address user) ;
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
@@ -343,7 +343,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
             uuid: uuid
         });
 
-        emit RankNewNonce(itemId, hv, nonce, deadline) ;
+        emit RankNewNonce(itemId, hv, nonce, deadline, msg.sender) ;
     }
 
     // Receive proxy's message 

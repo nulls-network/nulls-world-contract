@@ -42,6 +42,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         uint256 nonce;
         address player;
         bool isOk;
+        string uuid;
     }
 
     mapping( bytes32 => DataInfo) DataInfos;
@@ -50,7 +51,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
 
     bool IsOk = true;
 
-    event NewPet(uint petid, uint batchIndex , uint item , address player , uint v , bytes32 rv ) ;
+    event NewPet(uint petid, uint batchIndex , uint item , address player , uint v , bytes32 rv, string uuid) ;
 
     event EggNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
 
@@ -109,7 +110,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         IERC20( EggToken ).transferFrom( dataInfo.player, address(this), dataInfo.total );
         // IERC20 egg = IERC20( EggToken ) ;
         for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
-            _openOne( i , dataInfo.itemId , dataInfo.player , rv ) ;
+            _openOne( i , dataInfo.itemId , dataInfo.player , rv, dataInfo.uuid) ;
         }
  
         // isOk标志设置为false
@@ -119,7 +120,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         return true;
     }
 
-    function _openOne( uint8 index , uint item , address player , bytes32 rv ) internal returns ( uint petid ){
+    function _openOne( uint8 index , uint item , address player , bytes32 rv, string memory uuid ) internal returns ( uint petid ){
         //random v 
         bytes32 val = keccak256( abi.encode(
             player , 
@@ -131,7 +132,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         petid = INullsPetToken( PetToken ).mint( player , tv ) ;
 
         //emit Open
-        emit NewPet(petid, index , item, player, tv , rv);
+        emit NewPet(petid, index , item, player, tv , rv, uuid);
     }
 
     // approve -> transferFrom
@@ -164,7 +165,8 @@ contract NullsEggManager is IOnlineGame, Ownable {
     function openMultiple(
         uint total ,
         uint itemId , 
-        uint256 deadline
+        uint256 deadline,
+        string memory uuid
     ) external {
         require( total > 0 && total <=20 , "NullsEggManager/Use 1-20 at a time.");
 
@@ -192,7 +194,8 @@ contract NullsEggManager is IOnlineGame, Ownable {
             itemId: itemId,
             nonce: nonce,
             player: msg.sender,
-            isOk: true
+            isOk: true,
+            uuid: uuid
         });
         emit EggNewNonce(itemId, hv, nonce, deadline);
     }
