@@ -4,39 +4,15 @@ import "../utils/Ownable.sol";
 import "../interfaces/IERC20.sol";
 
 abstract contract NullWorldMarket is Ownable {
-    // 宠物挂卖事件: 宠物id、第几次交易、购买token、价格、卖家、时间戳
-    event SellPet(
-        uint256 petId,
-        uint256 count,
-        address tokenAddr,
-        uint256 price,
-        address seller
-    );
+    //允许出售的erc20币种
+    mapping(address => Token) public SupportedToken;
 
-    modifier checkSupported(address tokenAddr) {
-        //todo  可以考虑 不需要白名单erc20
-
-        // 检查tokenAddr合法性
-        require(
-            SupportedToken[tokenAddr] == true,
-            "NullsPetTrade/Unsupported token."
-        );
-        _;
+    struct Token {
+        //是否允许
+        bool supported;
+        //费率
+        uint256 feeRate;
     }
-
-    // 取消挂卖
-    event UnSellPet(uint256 petId, uint256 count, address seller);
-
-    // 成功卖出: 宠物id、第几次交易、卖家、买家
-    event SuccessSell(
-        uint256 petId,
-        uint256 count,
-        address seller,
-        address buyer
-    );
-
-    mapping(address => bool) public SupportedToken;
-
     struct SellInfo {
         // 是否在出售
         bool isSell;
@@ -53,9 +29,36 @@ abstract contract NullWorldMarket is Ownable {
     // 存储出售信息
     mapping(uint256 => SellInfo) public PetSellInfos;
 
+    // 宠物挂卖事件: 宠物id、第几次交易、购买token、价格、卖家、时间戳
+    event SellPet(
+        uint256 petId,
+        uint256 count,
+        address tokenAddr,
+        uint256 price,
+        address seller
+    );
+
+    // 取消挂卖
+    event UnSellPet(uint256 petId, uint256 count, address seller);
+
+    // 成功卖出: 宠物id、成交金额、卖家、买家
+    event SuccessSell(
+        uint256 petId,
+        uint256 amount,
+        address seller,
+        address buyer
+    );
+
     // 配置用于宠物买卖交易的token（继承ERC20）
-    function setSupportedToken(address tokenAddr) external onlyOwner {
-        SupportedToken[tokenAddr] = true;
+    function setSupportedToken(
+        address tokenAddr,
+        bool supported,
+        uint256 feeRate
+    ) external onlyOwner {
+        Token memory token = SupportedToken[tokenAddr];
+        token.supported = supported;
+        token.feeRate = feeRate;
+        SupportedToken[tokenAddr] = token;
     }
 
     // 出售
@@ -63,9 +66,14 @@ abstract contract NullWorldMarket is Ownable {
         uint256 petId,
         address tokenAddr,
         uint256 price
-    ) external checkSupported(tokenAddr) {
-        //授权给当前合约
-        _SellApproved(petId);
+    ) external {
+        // 检查tokenAddr合法性
+        require(
+            SupportedToken[tokenAddr].supported == true,
+            "NullsPetTrade/Unsupported token."
+        );
+        //校验是否能Sell
+        _checkSell(petId);
         //获取被出售信息
         SellInfo memory sellInfo = PetSellInfos[petId];
 
@@ -99,13 +107,28 @@ abstract contract NullWorldMarket is Ownable {
             sellInfo.isSell,
             "NullsPetTrade/Currently pets do not support buying."
         );
+        uint256 amount = sellInfo.price;
+        Token memory token = SupportedToken[sellInfo.token];
+        uint256 fee = (amount * token.feeRate) / 10000;
+        amount -= fee;
+        //转手续费
+        if (fee > 0) {
+            require(
+                IERC20(sellInfo.token).transferFrom(
+                    msg.sender,
+                    owner(),
+                    amount
+                ),
+                "NullsPetTrade/Transfer failed: it may be unapproved."
+            );
+        }
 
         // 转token
         require(
             IERC20(sellInfo.token).transferFrom(
                 msg.sender,
                 sellInfo.seller,
-                sellInfo.price
+                amount
             ),
             "NullsPetTrade/Transfer failed: it may be unapproved."
         );
@@ -117,10 +140,10 @@ abstract contract NullWorldMarket is Ownable {
         PetSellInfos[petId] = sellInfo;
 
         // 转宠物
-        _MarketBuy(sellInfo.seller, msg.sender, petId);
+        _buyPet(sellInfo.seller, msg.sender, petId);
 
         // 发出事件
-        emit SuccessSell(petId, sellInfo.count, sellInfo.seller, msg.sender);
+        emit SuccessSell(petId, amount, sellInfo.seller, msg.sender);
     }
 
     function _unSellPet(uint256 petId) internal {
@@ -133,11 +156,11 @@ abstract contract NullWorldMarket is Ownable {
         }
     }
 
-    //授权给当前合约
-    function _SellApproved(uint256 petId) internal virtual {}
+    //校验是否能出售
+    function _checkSell(uint256 petId) internal virtual {}
 
     //转宠物
-    function _MarketBuy(
+    function _buyPet(
         address from,
         address to,
         uint256 petId
