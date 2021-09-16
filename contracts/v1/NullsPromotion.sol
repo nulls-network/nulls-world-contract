@@ -16,7 +16,10 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
     uint RewardStartTime ;
     uint RewardEndTime ;
 
-    mapping(uint8 => uint ) RewardValue ; //奖励比例 0:自己 1:一级  2:二级 3:三级
+    mapping(uint8 => uint ) public RewardValue; //奖励比例 0:自己 1:一级  2:二级 3:三级
+
+    // 记录某个用户的奖励金额
+    mapping(address => uint) public UserRewards;
 
     // 存储邀请信息的底层合约
     INullsInvite InviteContract;
@@ -35,7 +38,9 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
         _ ;
     }
 
-    event RewardRecord( address buyer , uint total , address payToken , uint payTotal ) ;
+    // 恐龙蛋购买者、奖励获得者、获得token数量、index(0,1,2,3)
+    event RewardRecord( address buyer, address target, uint rewardvalue, uint index);
+    event ReceiveReward(address user, uint total);
 
     function setReward( address token , uint total , uint startTime , uint endTime ) external onlyOwner {
         RewardToken = token ;
@@ -56,37 +61,49 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
         RewardValue[3] = three ; 
     }
 
-    function doReward( address current , uint total , uint8 index ) internal {
+    function doReward(address buyer, address current , uint total , uint8 index ) internal {
         if( current == address(0) || index >=4 ){
             return ;
         }
-        uint balance = IERC20(RewardToken).balanceOf( address(this) ) ;
-        if( balance > 0 && RewardTotal > RewardUsed ) {
-            uint rewardValue = RewardValue[index] * total ;
-            if( rewardValue > balance ) {
-                rewardValue = balance ;
-            }
-            IERC20(RewardToken).transfer( current , rewardValue );
-            RewardUsed += rewardValue ; 
-            index++ ;
-
+        uint balance = RewardTotal - RewardUsed;
+        if(balance > 0) {
             (,,,address superior,bool isPartner) = InviteContract.getInviteStatistics( current );
-            if( isPartner == false ) {
-                superior = address(0) ; // return
+            // 买蛋者、直接上级一定可以获取到奖励
+            if (index == 0 || index == 1 || isPartner) {
+                uint rewardValue = RewardValue[index] * total ;
+                if( rewardValue > balance ) {
+                    rewardValue = balance ;
+                }
+                // IERC20(RewardToken).transfer( current , rewardValue );
+                UserRewards[current] += rewardValue;
+                RewardUsed += rewardValue ; 
+                emit RewardRecord(buyer, current, rewardValue, index);
             }
-            doReward(superior, total, index);
+            
+            index++ ;
+            doReward(buyer, superior, total, index);
         }
-    }   
+    }
 
-    function doAfter(address buyer, uint total , address payToken , uint payAmount ) external override 
+    function receiveReward() external {
+        uint total = UserRewards[msg.sender];
+        uint balance = IERC20(RewardToken).balanceOf( address(this) ) ;
+        if (total > 0 && balance > 0) {
+            if (total > balance) {
+                total = balance;
+            }
+            IERC20(RewardToken).transfer( msg.sender , total);
+            emit ReceiveReward(msg.sender, total);
+        }
+    }
+
+    function doAfter(address buyer, uint total , address , uint ) external override 
         updateStatistics( buyer , total ) onlyEggContract {
 
         if( block.timestamp < RewardStartTime ||  block.timestamp > RewardEndTime ) {
             return ;
         }
 
-        doReward( buyer , total, 0 );
-
-        emit RewardRecord(buyer, total, payToken, payAmount );
+        doReward(buyer,  buyer , total, 0 );
     }
 }

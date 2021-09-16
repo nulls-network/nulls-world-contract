@@ -24,16 +24,16 @@ contract NullsInvite is Ownable, INullsInvite {
     // 调用它的活动合约.doAfter()
     address PromotionContract;
 
-    event Invite(address beInviter, uint timestamp, address superior );
+    event Invite(address beInviter, address superior );
 
     // 晋升为合伙人事件
-    event NewPartner(address player, uint timestamp);
+    event NewPartner(address player);
 
     // 成为合伙人的条件，以下条件满足一个即可
     // 自己买蛋的总数
-    uint32 MinBuyEggNumber = 3;
-    // 下级买蛋的总数
-    uint32 MinInviteNumber = 3;
+    uint32 MinBuyEggNumber = 0;
+    // 有效邀请人数
+    uint32 MinInviteNumber = 0;
 
     modifier onlyPromotionContract() {
         require(PromotionContract == _msgSender() , "Ownable: caller is not the promotion contract");
@@ -44,6 +44,14 @@ contract NullsInvite is Ownable, INullsInvite {
     function setPartnerCondition(uint32 buyEggNumber, uint32 inviteNumber) external onlyOwner {
         MinBuyEggNumber = buyEggNumber;
         MinInviteNumber = inviteNumber;
+    }
+
+    function addPartner(address user) external onlyOwner {
+        bool isPartner = Partner[user];
+        if (isPartner == false) {
+            Partner[user] = true;
+            emit NewPartner(user);
+        }
     }
 
     // 设置活动合约
@@ -86,7 +94,7 @@ contract NullsInvite is Ownable, INullsInvite {
         // 注册上级关系
         UserSuperior[beInviter] = inviter;
         updateInviteStatistics( inviter , 0 );
-        emit Invite(beInviter, block.timestamp , inviter );
+        emit Invite(beInviter, inviter );
     }
 
     function checkSuperiorBecomePartner(address currentUser) internal {
@@ -95,11 +103,14 @@ contract NullsInvite is Ownable, INullsInvite {
             address superior = UserSuperior[currentUser];
             if (superior != address(0)) {
                 ValidInviteCount[superior] += 1;
+                if (MinInviteNumber == 0) {
+                    return;
+                }
                 ( , , , , bool superiorIsPartner )  = getInviteStatistics(superior);
                 if (superiorIsPartner == false) {
                     if ( ValidInviteCount[superior] >= MinInviteNumber ) {
                         Partner[superior] = true;
-                        emit NewPartner( superior , block.timestamp ) ;
+                        emit NewPartner( superior) ;
                     }
                 }
             }
@@ -107,12 +118,16 @@ contract NullsInvite is Ownable, INullsInvite {
     }
 
     function checkUserBecomePartner(address currentUser) internal {
+        if (MinBuyEggNumber == 0) {
+            return;
+        }
+
         bool isPartner = Partner[currentUser];
     
         if( isPartner == false ) {
             if( BuyEggCount[currentUser] >= MinBuyEggNumber ) {
                 Partner[currentUser] = true ;
-                emit NewPartner( currentUser , block.timestamp ) ;
+                emit NewPartner( currentUser) ;
             }
         }
     }
