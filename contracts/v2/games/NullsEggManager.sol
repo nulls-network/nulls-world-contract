@@ -10,12 +10,14 @@ import "../../interfaces/INullsAfterBuyToken.sol";
 import "../../utils/Ownable.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../utils/Counters.sol";
+import "../../interfaces/ITransferProxy.sol";
 
 contract NullsEggManager is IOnlineGame, Ownable {
     address EggToken ;
     address PetToken ;
     address Proxy;
     address BuyTokenAfter ;
+    ITransferProxy TransferProxy;
     uint SceneId;
 
     mapping( address => BuyToken ) BuyTokens ;  // token -> config
@@ -65,6 +67,10 @@ contract NullsEggManager is IOnlineGame, Ownable {
         SceneId = INullsWorldCore(Proxy).newScene(address(this), name);
     }
 
+    function setTransferProxy(address proxy) external onlyOwner {
+        TransferProxy = ITransferProxy(proxy);
+    }
+
     function getSceneId() external view returns(uint sceneId) {
         return SceneId;
     }
@@ -107,7 +113,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         // 防止重复消费data
         require(dataInfo.isOk, "NullsEggManager/Do not repeat consumption.");
 
-        IERC20( EggToken ).transferFrom( dataInfo.player, address(this), dataInfo.total );
+        TransferProxy.erc20TransferFrom(EggToken, dataInfo.player, address(this), dataInfo.total);
         // IERC20 egg = IERC20( EggToken ) ;
         for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
             _openOne( i , dataInfo.itemId , dataInfo.player , rv, dataInfo.uuid) ;
@@ -145,7 +151,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         uint amount = total * buyToken.amount ;
 
         //got token 
-        IERC20( token ).transferFrom( sender, owner() , amount );
+        TransferProxy.erc20TransferFrom(token, sender, owner(), amount);
 
         // show buyer the egg .
         INullsEggToken( EggToken ).mint( sender , total ) ; 

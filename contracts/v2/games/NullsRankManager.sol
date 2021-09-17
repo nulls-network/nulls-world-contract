@@ -7,6 +7,7 @@ import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/IERC20.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../utils/Counters.sol";
+import "../../interfaces/ITransferProxy.sol";
 
 contract NullsRankManager is IOnlineGame, Ownable {
 
@@ -14,6 +15,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
 
     address Proxy = address(0);
     address PetToken = address(0);
+    ITransferProxy TransferProxy;
     bool IsOk = true;
     uint SceneId ;
 
@@ -94,6 +96,9 @@ contract NullsRankManager is IOnlineGame, Ownable {
         GeneralPetRestTime = generalPetRestTime;
     }
 
+    function setTransferProxy(address proxy) external onlyOwner {
+        TransferProxy = ITransferProxy(proxy);
+    }
 
     // 获取休息时间配置
     function getRestTime() public view returns(uint generalPetRestTime){
@@ -198,7 +203,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
             require(INullsPetToken( PetToken ).Types(petId) == 0xff, "NullsRankManager/Pets do not have the ability to open the Rank");
             uint initialCapital = RankTokens[token].minInitialCapital * multiple;
             // 转出擂台启动资金
-            IERC20( token ).transferFrom( creator, address(this) , initialCapital );
+            TransferProxy.erc20TransferFrom(token, creator, address(this), initialCapital);
             // 创建item
             itemId = INullsWorldCore(Proxy).newItem( SceneId , pubkey );
 
@@ -245,7 +250,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         uint challengeCapital = rank.ticketAmt;
 
         // 从挑战者账户扣款
-        IERC20( rank.token ).transferFrom( player, address(this) , challengeCapital);
+        TransferProxy.erc20TransferFrom(rank.token, player, address(this) , challengeCapital);
 
         // 挑战金分成
         (uint8 RankPoolRatio, uint8 RankOwnerRatio, uint8 gameOperatorRatio) = getRewardRatio(rank.total);

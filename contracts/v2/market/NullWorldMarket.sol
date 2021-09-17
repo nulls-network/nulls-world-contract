@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
-import "../utils/Ownable.sol";
-import "../interfaces/IERC20.sol";
+import "../../utils/Ownable.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/ITransferProxy.sol";
 
 abstract contract NullWorldMarket is Ownable {
+    ITransferProxy TransferProxy;
+
     //允许出售的erc20币种
     mapping(address => Token) public SupportedToken;
 
@@ -48,6 +51,10 @@ abstract contract NullWorldMarket is Ownable {
         address seller,
         address buyer
     );
+
+    function setTransferProxy(address proxy) external onlyOwner {
+        TransferProxy = ITransferProxy(proxy);
+    }
 
     // 配置用于宠物买卖交易的token（继承ERC20）
     function setSupportedToken(
@@ -113,25 +120,11 @@ abstract contract NullWorldMarket is Ownable {
         amount -= fee;
         //转手续费
         if (fee > 0) {
-            require(
-                IERC20(sellInfo.token).transferFrom(
-                    msg.sender,
-                    owner(),
-                    amount
-                ),
-                "NullsPetTrade/Transfer failed: it may be unapproved."
-            );
+            TransferProxy.erc20TransferFrom(sellInfo.token, msg.sender, owner(), amount);
         }
 
         // 转token
-        require(
-            IERC20(sellInfo.token).transferFrom(
-                msg.sender,
-                sellInfo.seller,
-                amount
-            ),
-            "NullsPetTrade/Transfer failed: it may be unapproved."
-        );
+        TransferProxy.erc20TransferFrom(sellInfo.token, msg.sender, sellInfo.seller, amount);
         // 置位
         sellInfo.isSell = false;
         //出售次数加1
