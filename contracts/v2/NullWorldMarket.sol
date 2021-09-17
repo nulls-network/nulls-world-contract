@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "../utils/Ownable.sol";
 import "../interfaces/IERC20.sol";
 
-abstract contract NullWorldMarketV2 is Ownable {
+abstract contract NullWorldMarket is Ownable {
     //允许出售的erc20币种
     mapping(address => Token) public SupportedToken;
 

@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import "../utils/Ownable.sol";
 import "../utils/Counters.sol";
 import "../ERC721.sol";
-import "./NullWorldMarketV2.sol";
+import "./NullWorldMarket.sol";
 
-contract NullsPetTokenV2 is ERC721, Ownable, NullWorldMarketV2 {
+contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
     using Counters for Counters.Counter;
     Counters.Counter private TokenIds;
 

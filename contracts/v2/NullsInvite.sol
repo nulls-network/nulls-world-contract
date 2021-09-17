@@ -28,6 +28,8 @@ contract NullsInvite is Ownable, INullsInvite {
 
     // 晋升为合伙人事件
     event NewPartner(address player);
+    // 删除合伙人事件
+    event DelPartner(address player);
 
     // 成为合伙人的条件，以下条件满足一个即可
     // 自己买蛋的总数
@@ -51,6 +53,14 @@ contract NullsInvite is Ownable, INullsInvite {
         if (isPartner == false) {
             Partner[user] = true;
             emit NewPartner(user);
+        }
+    }
+
+    function delPartner(address user) external onlyOwner {
+        bool isPartner = Partner[user];
+        if (isPartner == true) {
+            delete Partner[user];
+            emit DelPartner(user);
         }
     }
 
