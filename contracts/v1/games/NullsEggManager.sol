@@ -145,7 +145,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
         uint amount = total * buyToken.amount ;
 
         //got token 
-        IERC20( token ).transferFrom( sender, address(this) , amount );
+        IERC20( token ).transferFrom( sender, owner() , amount );
 
         // show buyer the egg .
         INullsEggToken( EggToken ).mint( sender , total ) ; 
