@@ -1,11 +1,16 @@
 const hre = require("hardhat")
-const { exit } = require("process");
+
+// 取消设置合伙人测试脚本，使用ht-testnet测试
+// npx hardhat run test/invite/invite-del-partner.js --network ht-testnet
+
+const contractName = "NullsInvite";
+const contractAddr = "0x70a5F1D82d25C6Cb69ad73b30068C7c748553667";
+const partner = "0xB1877E668f3827FF8301EfEAe6aB7aB081d75f11";
 
 async function main() {
 
-  // 用于测试期间支付购买宠物、pk的token
-  contract = await connectContract("NullsERC20Token", "0x6aA7CF4F83c6a88cABD93b40D47E7144311882B8")
-  await contract.mint("0x84f09d4688c683e2Bb84Cb36CdeC22A288eF99de", 10000000000000)
+  contract = await connectContract(contractName, contractAddr)
+  await contract.delPartner(partner)
 }
 
 async function connectContract(contractName, contractAddress) {

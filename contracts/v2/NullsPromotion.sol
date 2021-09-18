@@ -93,6 +93,7 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
                 total = balance;
             }
             IERC20(RewardToken).transfer( msg.sender , total);
+            UserRewards[msg.sender] = 0;
             emit ReceiveReward(msg.sender, total);
         }
     }

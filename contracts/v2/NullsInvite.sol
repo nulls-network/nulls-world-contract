@@ -93,6 +93,10 @@ contract NullsInvite is Ownable, INullsInvite {
 
     function invite(address inviter ) external {
         address beInviter = msg.sender ;
+        // 账户地址不能为空
+        require(inviter != address(0), "NullsInvite/Incorrect account address.");
+        // 不能自己邀请自己
+        require(inviter != beInviter, "NullsInvite/Not allowed to invite myself.");
         // 被邀请用户购买过蛋，证明不是新用户
         require(BuyEggCount[beInviter] == 0, "NullsInvite/The invited user already exists because they have purchased eggs.");
         // 被邀请过，证明不是新用户

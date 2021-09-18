@@ -5,7 +5,7 @@ import "../interfaces/ITransferProxy.sol";
 
 // ERC20、ERC721转账代理合约
 // 此合约作为统一授权代理合约
-contract ErcProxy is Ownable, ITransferProxy  {
+contract TransferProxy is Ownable, ITransferProxy  {
 
     // 允许调用此合约的合约名单
     mapping(address => bool) WhiteList;
@@ -19,7 +19,7 @@ contract ErcProxy is Ownable, ITransferProxy  {
     }
 
     modifier onlyWhiteList() {
-        require(WhiteList[msg.sender], "ErcProxy/No access.");
+        require(WhiteList[msg.sender], "TransferProxy/No access.");
         _;
     }
 
