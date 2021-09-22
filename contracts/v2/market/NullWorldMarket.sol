@@ -3,56 +3,17 @@ pragma solidity ^0.8.0;
 import "../../utils/Ownable.sol";
 import "../../interfaces/IERC20.sol";
 import "../../interfaces/ITransferProxy.sol";
+import "../../interfaces-external/INullWorldMarket.sol";
 
-abstract contract NullWorldMarket is Ownable {
+abstract contract NullWorldMarket is INullWorldMarket, Ownable {
     ITransferProxy TransferProxy;
 
     //允许出售的erc20币种
-    mapping(address => Token) public SupportedToken;
-
-    struct Token {
-        //是否允许
-        bool supported;
-        //费率
-        uint256 feeRate;
-    }
-    struct SellInfo {
-        // 是否在出售
-        bool isSell;
-        // 购买token
-        address token;
-        // 价格
-        uint256 price;
-        // 卖家
-        address seller;
-        // 交易次数
-        uint256 count;
-    }
-
+    mapping(address => Token) SupportedToken;
     // 存储出售信息
-    mapping(uint256 => SellInfo) public PetSellInfos;
+    mapping(uint256 => SellInfo) PetSellInfos;
 
-    // 宠物挂卖事件: 宠物id、第几次交易、购买token、价格、卖家、时间戳
-    event SellPet(
-        uint256 petId,
-        uint256 count,
-        address tokenAddr,
-        uint256 price,
-        address seller
-    );
-
-    // 取消挂卖
-    event UnSellPet(uint256 petId, uint256 count, address seller);
-
-    // 成功卖出: 宠物id、成交金额、卖家、买家
-    event SuccessSell(
-        uint256 petId,
-        uint256 amount,
-        address seller,
-        address buyer
-    );
-
-    function setTransferProxy(address proxy) external onlyOwner {
+    function setTransferProxy(address proxy) external override onlyOwner {
         TransferProxy = ITransferProxy(proxy);
     }
 
@@ -61,11 +22,23 @@ abstract contract NullWorldMarket is Ownable {
         address tokenAddr,
         bool supported,
         uint256 feeRate
-    ) external onlyOwner {
+    ) external override onlyOwner {
         Token memory token = SupportedToken[tokenAddr];
         token.supported = supported;
         token.feeRate = feeRate;
         SupportedToken[tokenAddr] = token;
+    }
+
+    function getSupportedToken(
+        address tokenAddr
+    ) external override view returns(Token memory tokenInfo) {
+        tokenInfo = SupportedToken[tokenAddr];
+    }
+
+    function getPetSellInfos(
+        uint256 petId
+    ) external override view returns(SellInfo memory sellInfo) {
+        sellInfo = PetSellInfos[petId];
     }
 
     // 出售
@@ -73,7 +46,7 @@ abstract contract NullWorldMarket is Ownable {
         uint256 petId,
         address tokenAddr,
         uint256 price
-    ) external {
+    ) external override {
         // 检查tokenAddr合法性
         require(
             SupportedToken[tokenAddr].supported == true,
@@ -96,7 +69,7 @@ abstract contract NullWorldMarket is Ownable {
     }
 
     // 取消出售
-    function unSellPet(uint256 petId) external {
+    function unSellPet(uint256 petId) external override {
         // 检查petId所属权
         SellInfo memory sellInfo = PetSellInfos[petId];
         require(
@@ -107,7 +80,7 @@ abstract contract NullWorldMarket is Ownable {
     }
 
     // 购买
-    function buyPet(uint256 petId) external {
+    function buyPet(uint256 petId) external override {
         // 检查宠物是否在售卖中
         SellInfo memory sellInfo = PetSellInfos[petId];
         require(

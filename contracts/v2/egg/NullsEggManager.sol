@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/IOnlineGame.sol";
-// import "../../interfaces/IOnlineRouter.sol";
 import "../../interfaces/INullsEggToken.sol";
 import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/IERC20.sol";
@@ -11,31 +10,13 @@ import "../../utils/Ownable.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../utils/Counters.sol";
 import "../../interfaces/ITransferProxy.sol";
+import "../../interfaces-external/INullsEggManager.sol";
 
-contract NullsEggManager is IOnlineGame, Ownable {
-    address EggToken ;
-    address PetToken ;
-    address Proxy;
-    address BuyTokenAfter ;
-    ITransferProxy TransferProxy;
-    uint SceneId;
-
-    mapping( address => BuyToken ) BuyTokens ;  // token -> config
+contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
 
     struct BuyToken {
         uint amount ;
         bool isOk ;
-    }
-
-    using Counters for Counters.Counter;
-
-    // 该nonce值用作生成hash
-    mapping(address => Counters.Counter) Nonces;
-
-    function _useNonces(address player) internal returns (uint256 current) {
-        Counters.Counter storage counter = Nonces[player];
-        current = counter.current();
-        counter.increment();
     }
 
     struct DataInfo {
@@ -47,56 +28,73 @@ contract NullsEggManager is IOnlineGame, Ownable {
         string uuid;
     }
 
+
+    address EggToken ;
+    address PetToken ;
+    address Proxy;
+    address BuyTokenAfter ;
+    ITransferProxy TransferProxy;
+    uint SceneId;
+
+    mapping( address => BuyToken ) BuyTokens ;  // token -> config
+
+    using Counters for Counters.Counter;
+
+    // 该nonce值用作生成hash
+    mapping(address => Counters.Counter) Nonces;
+
     mapping( bytes32 => DataInfo) DataInfos;
 
     address BuyAfterAddress ;   //购买后的处理函数
 
     bool IsOk = true;
 
-    event NewPet(uint petid, uint batchIndex , uint item , address player , uint v , bytes32 rv, string uuid) ;
-
-    event EggNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline) ;
-
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsEggManager/Is not from proxy.");
         _;
     }
 
-    function setProxy(address proxy, string memory name) external onlyOwner {
+    function _useNonces(address player) internal returns (uint256 current) {
+        Counters.Counter storage counter = Nonces[player];
+        current = counter.current();
+        counter.increment();
+    }
+
+    function setProxy(address proxy, string memory name) external override onlyOwner {
         Proxy = proxy;
         SceneId = INullsWorldCore(Proxy).newScene(address(this), name);
     }
 
-    function setTransferProxy(address proxy) external onlyOwner {
+    function setTransferProxy(address proxy) external override onlyOwner {
         TransferProxy = ITransferProxy(proxy);
     }
 
-    function getSceneId() external view returns(uint sceneId) {
-        return SceneId;
-    }
-
-    // 根据币种查询买蛋单价
-    function getPrice(address token) external view returns(uint price) {
-        BuyToken memory buyToken =  BuyTokens[token];
-        require(buyToken.isOk, "NullsEggManager/Unsupported token.");
-        price = buyToken.amount;
-    }
-
-    function setPetToken( address eggToken , address petToken ) external onlyOwner {
+    function setPetTokenAndEggToken( address eggToken , address petToken ) external override onlyOwner {
         EggToken = eggToken ;
         PetToken = petToken ;
     }
 
-    function setAfterProccess( address afterAddr ) external onlyOwner {
+    function setAfterProccess( address afterAddr ) external override onlyOwner {
         BuyTokenAfter = afterAddr ;
     }
 
-    function setBuyToken( address token , uint amount ) external onlyOwner {
+    function getSceneId() external view override returns(uint sceneId) {
+        return SceneId;
+    }
+
+    function setBuyToken( address token , uint amount ) external override onlyOwner {
         BuyToken memory buyToken = BuyToken({
             amount : amount ,
             isOk : true 
         }) ;
         BuyTokens[ token ] = buyToken ;
+    }
+
+    // 根据币种查询买蛋单价
+    function getPrice(address token) external view override returns(uint price) {
+        BuyToken memory buyToken =  BuyTokens[token];
+        require(buyToken.isOk, "NullsEggManager/Unsupported token.");
+        price = buyToken.amount;
     }
 
     function test() external view override returns (bool) {
@@ -142,7 +140,7 @@ contract NullsEggManager is IOnlineGame, Ownable {
     }
 
     // approve -> transferFrom
-    function buy( uint total , address token ) external {
+    function buy( uint total , address token ) external override {
         address sender = msg.sender ;
         require( total > 0 , "NullsEggManager/Total is zero.") ;
         //扣款
@@ -164,16 +162,12 @@ contract NullsEggManager is IOnlineGame, Ownable {
         }
     } 
 
-    function superTransfer( address token , address to , uint amount ) external onlyOwner {
-        IERC20( token ).transfer( to , amount );
-    }
-
     function openMultiple(
         uint total ,
         uint itemId , 
         uint256 deadline,
         string memory uuid
-    ) external {
+    ) external override {
         require( total > 0 && total <=20 , "NullsEggManager/Use 1-20 at a time.");
 
         require(block.timestamp <= deadline, "NullsEggManager: expired deadline");

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
-import "../utils/Ownable.sol";
-import "../interfaces/INullsInvite.sol";
-import "../interfaces/INullsAfterBuyToken.sol";
-import "../interfaces/IERC20.sol";
+import "../../utils/Ownable.sol";
+import "../../interfaces-external/INullsInvite.sol";
+import "../../interfaces/INullsAfterBuyToken.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces-external/INullsPromotion.sol";
 
 // 促销合约
 // 所有计算没有使用 SafeMath , 需要考虑溢出情况。
-contract NullsPromotion is Ownable, INullsAfterBuyToken {
+contract NullsPromotion is INullsPromotion, Ownable, INullsAfterBuyToken {
 
     address RewardToken ;
     uint RewardTotal ;
@@ -16,10 +17,10 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
     uint RewardStartTime ;
     uint RewardEndTime ;
 
-    mapping(uint8 => uint ) public RewardValue; //奖励比例 0:自己 1:一级  2:二级 3:三级
+    mapping(uint8 => uint ) public override RewardValue; //奖励比例 0:自己 1:一级  2:二级 3:三级
 
     // 记录某个用户的奖励金额
-    mapping(address => uint) public UserRewards;
+    mapping(address => uint) public override UserRewards;
 
     // 存储邀请信息的底层合约
     INullsInvite InviteContract;
@@ -38,23 +39,19 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
         _ ;
     }
 
-    // 恐龙蛋购买者、奖励获得者、获得token数量、index(0,1,2,3)
-    event RewardRecord( address buyer, address target, uint rewardvalue, uint index);
-    event ReceiveReward(address user, uint total);
-
-    function setReward( address token , uint total , uint startTime , uint endTime ) external onlyOwner {
+    function setReward( address token , uint total , uint startTime , uint endTime ) external override onlyOwner {
         RewardToken = token ;
         RewardTotal = total ;
         RewardStartTime = startTime ;
         RewardEndTime = endTime ;
     }
 
-    function setBaseInfo( address inviteAddr , address eggAddr ) external onlyOwner {
+    function setBaseInfo( address inviteAddr , address eggAddr ) external override onlyOwner {
         InviteContract = INullsInvite( inviteAddr ) ;
         EggContractAddr = eggAddr ; 
     }
 
-    function setRewardValue( uint self , uint one , uint two , uint three ) external onlyOwner {
+    function setRewardValue( uint self , uint one , uint two , uint three ) external override onlyOwner {
         RewardValue[0] = self ;
         RewardValue[1] = one ;
         RewardValue[2] = two ;
@@ -85,7 +82,7 @@ contract NullsPromotion is Ownable, INullsAfterBuyToken {
         }
     }
 
-    function receiveReward() external {
+    function receiveReward() external override {
         uint total = UserRewards[msg.sender];
         uint balance = IERC20(RewardToken).balanceOf( address(this) ) ;
         if (total > 0 && balance > 0) {

@@ -178,7 +178,7 @@ async function eggManager(core, petT, eggT, testC20, transferProx){
   
   if (obj.flag || petT.flag || eggT.flag) {
     // 设置eggToken和petToken
-    await eggmanager.setPetToken(eggT.contract.address, petT.contract.address)
+    await eggmanager.setPetTokenAndEggToken(eggT.contract.address, petT.contract.address)
   }
   
   // 设置购买宠物币种和金额
@@ -313,7 +313,7 @@ async function promotion(nullsInvite, eggM, mainToken) {
 
   if (nullsInvite.flag || obj.flag) {
     // 设置invite的活动合约
-    await nullsInvite.contract.addPromotionContract(obj.contract.address)
+    await nullsInvite.contract.setPromotionContract(obj.contract.address)
   }
 
   if (mainToken.flag || obj.flag) {

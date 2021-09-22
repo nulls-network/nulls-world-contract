@@ -8,8 +8,24 @@ import "../../interfaces/IERC20.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../utils/Counters.sol";
 import "../../interfaces/ITransferProxy.sol";
+import "../../interfaces-external/INullsRankManager.sol";
 
-contract NullsRankManager is IOnlineGame, Ownable {
+contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
+
+    struct RankTokenConfig {
+        // 最小启动资金
+        uint minInitialCapital;
+        bool isOk ;
+    }
+
+    struct DataInfo {
+        uint challengerPetId;
+        uint itemId;
+        uint256 nonce;
+        address player;
+        bool isOk;
+        string uuid;
+    }
 
     using Counters for Counters.Counter;
 
@@ -29,62 +45,15 @@ contract NullsRankManager is IOnlineGame, Ownable {
 
     // 记录上次挑战时间
     // 对于普通宠物: 上次挑战时间
-    mapping( uint => uint) public LastChallengeTime;
-
-    struct RankTokenConfig {
-        // 最小启动资金
-        uint minInitialCapital;
-        bool isOk ;
-    }
+    mapping( uint => uint) public override LastChallengeTime;
 
     // 擂台信息
-    mapping( uint256 => Rank) public Ranks;
+    mapping( uint256 => Rank) Ranks;
 
     // 记录pet、Item映射关系
     mapping( uint => bool ) PetLocked; // petid -> beating  
 
-    struct Rank {
-        // 开擂台宠物ID
-        uint petId;
-        // 擂台挑战token类型
-        address token;
-        uint ticketAmt ;
-        // 初始资金
-        uint initialCapital;
-        // 倍率，5/10
-        // 5: 启动资金为配置的最小启动资金
-        // 10: 擂台启动资金为最小启动资金*2
-        uint8 multiple;
-        // 创建者
-        address creater;
-        // 奖金池，奖金池归零，擂台失效
-        uint bonusPool;
-        // 创建者奖励
-        uint ownerBonus;
-        // 游戏运营商奖励
-        uint gameOperatorBonus;
-        // 擂台被挑战次数
-        uint total;
-    }
-
-    struct DataInfo {
-        uint challengerPetId;
-        uint itemId;
-        uint256 nonce;
-        address player;
-        bool isOk;
-        string uuid;
-    }
-
     mapping( bytes32 => DataInfo) DataInfos;
-
-    // 创建擂台，itemId、创建擂台的宠物、擂台支付token、初始资金、创建者、倍率、创建时的公钥
-    event NewRank(uint256 itemId, uint petId, address token, uint initialCapital, address creater, uint8 multiple, address publicKey);
-
-    // 擂台状态更新,itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值、uuid用于找回pk结果
-    event RankUpdate(uint256 itemId, uint challengerPetId, address challenger, uint bonusPool, bytes32 rv, bool isWin , uint value, string uuid);
-
-    event RankNewNonce(uint itemId, bytes32 hv, uint256 nonce, uint256 deadline, address user) ;
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
@@ -92,43 +61,47 @@ contract NullsRankManager is IOnlineGame, Ownable {
     }
 
     // 设置休息时间
-    function setRestTime( uint generalPetRestTime) external onlyOwner {
+    function setRestTime( uint generalPetRestTime) external override onlyOwner {
         GeneralPetRestTime = generalPetRestTime;
     }
 
-    function setTransferProxy(address proxy) external onlyOwner {
+    function setTransferProxy(address proxy) external override onlyOwner {
         TransferProxy = ITransferProxy(proxy);
     }
 
+    function getRankInfo(uint256 rankId) external override view returns(Rank memory rank) {
+        rank = Ranks[rankId];
+    }
+
     // 获取休息时间配置
-    function getRestTime() public view returns(uint generalPetRestTime){
+    function getRestTime() external view override returns(uint generalPetRestTime) {
         return GeneralPetRestTime;
     }
 
     // 添加支持的代币
-    function addRankToken( address token, uint minInitialCapital) external onlyOwner {
+    function addRankToken( address token, uint minInitialCapital) external override onlyOwner {
         RankTokens[ token ] = RankTokenConfig({
             minInitialCapital: minInitialCapital,
             isOk: true
         }) ;
     }
 
-    function setProxy(address proxy, string memory name) external onlyOwner {
+    function setProxy(address proxy, string memory name) external override onlyOwner {
         Proxy = proxy;
         SceneId = INullsWorldCore(Proxy).newScene(address(this), name);
     }
 
-    function getSceneId() external view returns(uint sceneId) {
+    function getSceneId() external override view returns(uint sceneId) {
         return SceneId;
     }
 
-    function getPrice(address token) external view returns(uint price) {
+    function getPrice(address token) external override view returns(uint price) {
         RankTokenConfig memory rankTokenConfig = RankTokens[token];
         require(rankTokenConfig.isOk, "NullsRankManager/Unsupported token");
         price = rankTokenConfig.minInitialCapital;
     }
 
-    function setPetToken( address petToken ) external onlyOwner {
+    function setPetToken( address petToken ) external override onlyOwner {
         PetToken = petToken ;
     }
 
@@ -137,7 +110,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         return IsOk;
     }
 
-    function nonces(address player) public view returns (uint256) {
+    function nonces(address player) external override view returns (uint256) {
         return Nonces[player].current();
     }
 
@@ -180,7 +153,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         uint8 v , 
         bytes32 r , 
         bytes32 s ,
-        address pubkey ) external onlyOwner returns(uint256 itemId) {
+        address pubkey ) external override onlyOwner returns(uint256 itemId) {
 
             require(creator != address(0), "NullsRankManager/Invalid address.");
 
@@ -311,7 +284,7 @@ contract NullsRankManager is IOnlineGame, Ownable {
         uint challengerPetId,
         uint256 deadline,
         string calldata uuid
-    ) external {
+    ) external override {
 
         require(block.timestamp <= deadline, "NullsRankManager: expired deadline");
 

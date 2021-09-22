@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-import "../ERC20.sol";
-import "../interfaces/INullsEggToken.sol";
+import "../../ERC20.sol";
+import "../../interfaces/INullsEggToken.sol";
 
-contract NullsEggToken is ERC20 , INullsEggToken {
+contract NullsEggToken is ERC20, INullsEggToken {
 
     address Owner ;
     address Oper ;
