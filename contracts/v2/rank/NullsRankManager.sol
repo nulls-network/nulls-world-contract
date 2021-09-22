@@ -173,7 +173,13 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
 
             // 检查petId是否合法
             require(INullsPetToken( PetToken ).ownerOf(petId) == creator, "NullsRankManager/Pet id is illegal");
-            require(INullsPetToken( PetToken ).Types(petId) == 0xff, "NullsRankManager/Pets do not have the ability to open the Rank");
+            // 截取低8位进行判断
+            require(
+                uint8(
+                    bytes1(
+                        INullsPetToken( PetToken ).Types(petId)
+                    )
+                ) == 0xff, "NullsRankManager/Pets do not have the ability to open the Rank");
             uint initialCapital = RankTokens[token].minInitialCapital * multiple;
             // 转出擂台启动资金
             TransferProxy.erc20TransferFrom(token, creator, address(this), initialCapital);

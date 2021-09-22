@@ -13,7 +13,7 @@ contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
     address Oper;
     string BaseURI = "https://nulls.world/pets/";
 
-    mapping(uint256 => uint8) public Types; //Pet type , 0xff is god pet.
+    mapping(uint256 => bytes32) public Types; //Pet type , 0xff is god pet.
 
     modifier onlyOper() {
         require(msg.sender == Oper, "NullsPetToken/No oper role.");
@@ -28,7 +28,7 @@ contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
         Oper = oper;
     }
 
-    function mint(address player, uint8 tv)
+    function mint(address player, bytes32 tv)
         external
         onlyOper
         returns (uint256 tokenId)

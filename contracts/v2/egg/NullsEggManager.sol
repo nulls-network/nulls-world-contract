@@ -132,11 +132,10 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
             index , 
             rv 
         )) ;
-        uint8 tv = uint8(bytes1(val)) ;
-        petid = INullsPetToken( PetToken ).mint( player , tv ) ;
+        petid = INullsPetToken( PetToken ).mint( player , val ) ;
 
         //emit Open
-        emit NewPet(petid, index , item, player, tv , rv, uuid);
+        emit NewPet(petid, index , item, player, val , rv, uuid);
     }
 
     // approve -> transferFrom

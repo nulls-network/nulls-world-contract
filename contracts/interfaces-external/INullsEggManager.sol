@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 interface INullsEggManager {
     
-    // 新宠物事件: 宠物id、批处理下标、itemID、玩家、v、随机数、uuid(前端开蛋时传递的)
+    // 新宠物事件: 宠物id、批处理下标、itemID、玩家、宠物属性、随机数、uuid(前端开蛋时传递的)
     event NewPet(
         uint petid, 
         uint batchIndex, 
         uint item, 
         address player, 
-        uint v, 
+        bytes32 v, 
         bytes32 rv, 
         string uuid
     );
