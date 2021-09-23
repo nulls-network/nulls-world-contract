@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../../utils/Ownable.sol";
-import "../../utils/Counters.sol";
-import "../../ERC721.sol";
 import "./NullWorldMarket.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract NullsPetToken is ERC721, Ownable, NullWorldMarket {
     using Counters for Counters.Counter;

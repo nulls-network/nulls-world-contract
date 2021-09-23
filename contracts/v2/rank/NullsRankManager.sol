@@ -2,13 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/IOnlineGame.sol";
-import "../../utils/Ownable.sol";
 import "../../interfaces/INullsPetToken.sol";
-import "../../interfaces/IERC20.sol";
 import "../../interfaces/INullsWorldCore.sol";
-import "../../utils/Counters.sol";
 import "../../interfaces/ITransferProxy.sol";
 import "../../interfaces-external/INullsRankManager.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
 

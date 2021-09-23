@@ -1,11 +1,13 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-import "../ERC20.sol";
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract NullsERC20Token is ERC20 {
 
     address Owner ;
     address Oper ;
+    uint8 Decimals = 6;
 
     modifier onlyOwner() {
         require( msg.sender == Owner , "NullsERC20Token/No role." );
@@ -17,10 +19,13 @@ contract NullsERC20Token is ERC20 {
         _ ;
     }
 
+    function decimals() public view override returns (uint8) {
+        return Decimals;
+    }
+
     constructor() ERC20("NullsERC20 Token ","T-NET") {
         Owner = msg.sender ;
         Oper = msg.sender ;
-        setDecimals(6);
     }
 
     function modifierOwner( address owner ) external onlyOwner {

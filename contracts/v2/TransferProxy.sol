@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
-import "../utils/Ownable.sol";
+
 import "../interfaces/ITransferProxy.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 // ERC20、ERC721转账代理合约
 // 此合约作为统一授权代理合约

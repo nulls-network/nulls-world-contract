@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../../utils/Ownable.sol";
 import "../../interfaces-external/INullsInvite.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 // 邀请合约，存储邀请关系
 contract NullsInvite is Ownable, INullsInvite {

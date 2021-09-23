@@ -1,12 +1,14 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-import "../../ERC20.sol";
+
 import "../../interfaces/INullsEggToken.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract NullsEggToken is ERC20, INullsEggToken {
 
     address Owner ;
     address Oper ;
+    uint8 Decimals = 0;
 
     modifier onlyOwner() {
         require( msg.sender == Owner , "NullsWorldToken/No role." );
@@ -18,10 +20,13 @@ contract NullsEggToken is ERC20, INullsEggToken {
         _ ;
     }
 
+    function decimals() public view override returns (uint8) {
+        return Decimals;
+    }
+
     constructor() ERC20("NullsEgg Token ","NET") {
         Owner = msg.sender ;
         Oper = msg.sender ;
-        setDecimals(0);
     }
 
     function modifierOwner( address owner ) external onlyOwner {

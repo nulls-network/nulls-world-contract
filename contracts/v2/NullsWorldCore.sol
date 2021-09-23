@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IOnlineGame.sol";
 import "../interfaces/IOnlineRouter.sol";
-import "../utils/Ownable.sol";
-import "../utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract NullsWorldCore is IOnlineGame, Ownable {
 
