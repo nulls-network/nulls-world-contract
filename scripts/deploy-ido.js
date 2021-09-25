@@ -10,18 +10,19 @@ async function main() {
     console.log(owner.address)
     console.log("deploy start")
     const stakingToken = await deployErc20("IDO Staking", "IST");
-    await (await stakingToken.mint(owner.address, BigNumber.from(10).pow(25))).wait()
-    for (const key of addressList) {
-        await (await stakingToken.mint(key, BigNumber.from(10).pow(25))).wait()
-    }
+    
     const rewardsTokne = await deployErc20("IDO Rewards", "IRT");
-    await (await rewardsTokne.mint(owner.address, BigNumber.from(10).pow(25))).wait()
+
     const router = "0xF10391fE0c5845166E8768BFEc172B112014bDbA";
     const IDO = await hre.ethers.getContractFactory("IdoCore");
     const ido = await IDO.deploy(stakingToken.address, rewardsTokne.address, router, 1640970061);
     await ido.deployed();
     await rewardsTokne.mint(ido.address, BigNumber.from(10).pow(6).mul(210000));
-
+    await (await stakingToken.mint(owner.address, BigNumber.from(10).pow(25))).wait()
+    for (const key of addressList) {
+        await (await stakingToken.mint(key, BigNumber.from(10).pow(25))).wait()
+    }
+    await (await rewardsTokne.mint(owner.address, BigNumber.from(10).pow(25))).wait()
     console.log(`ido address>> ${ido.address}`);
 }
 

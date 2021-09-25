@@ -5,10 +5,9 @@ const approveAmount = BigNumber.from(10).pow(25);
 ///npx hardhat run test/ido/ido-test.js 
 
 const contractName = "IdoCore";
-const address = "0x88ccAc868f0d06c25c617bFAddD8aFE769087E22";
+const address = "0x057a9BD42702Ef1105d5484005B76223b4AA2a5b";
 const idoToken = "IdoToken";
-const future = BigNumber.from("1643738522"); // 2022/2/2
-const past = BigNumber.from("1622394922");   // 2021/9/24
+const past = BigNumber.from("1622394922");
 
 async function getData() {
   const [owner] = await hre.ethers.getSigners();
@@ -24,18 +23,19 @@ async function getData() {
 
 }
 async function main() {
-  const { staking, ido, owner } = await getData();
-  const allowance = await staking.allowance(owner.address, ido.address);
-  console.log(allowance)
-  if (allowance.isZero()) {
-    await (await staking.approve(ido.address, approveAmount)).wait();
-  }
-  const stakingAmount = BigNumber.from(10).pow(6).mul(10000);
-  const stakeTx = await (await ido.stake(stakingAmount)).wait();
-  console.log(stakeTx.transactionHash);
+  // const { staking, ido, owner } = await getData();
+  // const allowance = await staking.allowance(owner.address, ido.address);
+  // console.log("allowance: ", allowance)
+  // if (allowance.isZero()) {
+  //   await (await staking.approve(ido.address, approveAmount)).wait();
+  // }
+  // const stakingAmount = BigNumber.from(10).pow(6).mul(20000);
+  // const stakeTx = await (await ido.stake(stakingAmount)).wait();
+  // console.log(stakeTx.transactionHash);
   console.log("=====================1")
   await addLiquidity();
   console.log("=====================2")
+  await rateOf()
   await getReward();
 }
 
@@ -69,31 +69,44 @@ async function getReward() {
   console.log(tx.transactionHash);
 }
 // ------------
-async function getRewardLP() {
-  const { staking, ido, owner } = await getData();
-  console.log(await ido.getRewardLP(owner.address))
-}
 async function rewardTime() {
   const { staking, ido, owner } = await getData();
-  console.log(await ido.rewardTime(owner.address))
+  console.log("rewardTime: ", await ido.rewardTime(owner.address))
 }
 
 async function pairFor() {
   const { staking, ido, owner } = await getData();
   const aa = await ido.StakingToken();
   const bb = await ido.RewardsToken();
-  console.log(await ido.pairFor(aa, bb));
+  console.log("pairFor: ", await ido.pairFor(aa, bb));
 }
 
 async function rateOf() {
   const { staking, ido, owner } = await getData();
-  console.log(await ido.rateOf(owner.address))
+  console.log("rateOf: ", await ido.rateOf(owner.address))
 }
 
-async function rateOf() {
+async function balanceOf() {
   const { staking, ido, owner } = await getData();
-  console.log(await ido.rateOf(owner.address))
+  console.log("balanceOf: ", await ido.BalanceOf(owner.address))
 }
+
+async function totalSupply() {
+  const { staking, ido, owner } = await getData();
+  console.log("totalSupply: ", await ido.TotalSupply())
+  await balanceOf()
+}
+
+async function secondRewards() {
+  const { staking, ido, owner } = await getData();
+  console.log("secondRewards: ", await ido.SecondRewards())
+}
+
+async function secondStaking() {
+  const { staking, ido, owner } = await getData();
+  console.log("secondStaking: ", await ido.SecondStaking())
+}
+
 
 
 
@@ -102,7 +115,7 @@ let connected = {
 
 }
 async function connectContract(contractName, contractAddress) {
-  if (contractAddress == connected[contractAddress]) {
+  if (connected[contractAddress]) {
     return connected[contractAddress]
   }
   const [owner] = await hre.ethers.getSigners();
