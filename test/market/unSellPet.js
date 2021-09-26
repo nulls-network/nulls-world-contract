@@ -1,16 +1,18 @@
 const hre = require("hardhat")
 
-// 邀请测试脚本,使用ht-testnet-user1测试
-// npx hardhat run test/invite/invite.js --network ht-testnet-user1
+// 买蛋测试脚本,使用ht-testnet-user1测试
+// npx hardhat run test/market/unSellPet.js --network ht-testnet-user1
 
-const contractName = "NullsInvite";
-const contractAddr = "0x6c38279b09BE1dc50955E55f4B20E2BF38eF5Db3";
-const superior = "0xB1877E668f3827FF8301EfEAe6aB7aB081d75f11";
+const contractName = "NullsPetToken";
+const contractAddr = "0x416914b24eDb3A4dd6Ab62d034fd7827fB233024";
 
+const petId = 200;
 async function main() {
 
-  contract = await connectContract(contractName, contractAddr)
-  await contract.invite(superior)
+  rankContract = await connectContract(contractName, contractAddr)
+  
+  ret = await rankContract.unSellPet(petId)
+  await ret.wait()
 }
 
 async function connectContract(contractName, contractAddress) {
@@ -20,9 +22,6 @@ async function connectContract(contractName, contractAddress) {
   console.log(`connected ${contractName} address is : ${contract.address}`)
   return contract;
 }
-
-
-
 
 main()
   .then(() => process.exit(0))

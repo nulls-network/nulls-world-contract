@@ -10,7 +10,7 @@ const configFile = "./scripts/config.json"
 const prefixKey = "contrat_address"
 
 // router合约是否是新部署的，如果是的话，游戏和item一定需要重新注册
-const newRouterContractFlag = false
+const newRouterContractFlag = true
 
 // 购买蛋的单价
 const eggPrice = 1 * 1000000
@@ -19,12 +19,6 @@ const pkPrice = 10 * 1000000
 
 // 游戏名称
 const gameName = "Nulls"
-
-// 开蛋场景名称
-const eggMngName = "Nulls-OpenEgg"
-
-// PK场景名称
-const petPkName = "Nulls-Pk"
 
 // 普通宠物休息时间
 const generalPetRestTime = 1
@@ -50,6 +44,8 @@ const three = 10 * 1000000
 // 市场交易宠物手续费，万分之几
 const petTransferFee = 30;
 
+const newProjectMinFee = 100 * 1000000;
+
 let rwaJsonData;
 
 async function main() {
@@ -62,7 +58,7 @@ async function main() {
   let eggT = await eggToken()
   let petT = await petToken(testC20, transferProx) 
 
-  let core = await mainCore()
+  let core = await mainCore(testC20)
 
   let eggM = await eggManager(core, petT, eggT, testC20, transferProx)
 
@@ -128,7 +124,7 @@ async function c20() {
   return await connectOrDeployContract(contractName, contractAddresskey)
 }
 
-async function mainCore() {
+async function mainCore(testC20) {
   const contractAddresskey = "worldCore_address"
   const contractName = "NullsWorldCore"
 
@@ -138,9 +134,15 @@ async function mainCore() {
 
   // router合约重新部署过或core合约重新部署过，都需要重新注册游戏
   if (newRouterContractFlag || flag) {
+    // 增发
+    let txhash = await testC20.contract.mint(core.address, newProjectMinFee)
+    await txhash.wait()
+    // 授权
+    txhash = await core.approve(testC20.contract.address, newProjectMinFee)
+    await txhash.wait()
     // 注册游戏
-    let txHash = await core.registerGame(gameName)
-    await txHash.wait()
+    txhash = await core.registerGame(gameName, newProjectMinFee)
+    await txhash.wait()
   }
   return obj;
 }
@@ -178,17 +180,20 @@ async function eggManager(core, petT, eggT, testC20, transferProx){
   
   if (obj.flag || petT.flag || eggT.flag) {
     // 设置eggToken和petToken
-    await eggmanager.setPetTokenAndEggToken(eggT.contract.address, petT.contract.address)
+    ret = await eggmanager.setPetTokenAndEggToken(eggT.contract.address, petT.contract.address)
+    await ret.wait()
   }
   
   // 设置购买宠物币种和金额
-  await eggmanager.setBuyToken(testC20.contract.address, eggPrice);
-  await eggmanager.setBuyToken(rwaJsonData[prefixKey]["USDT"], eggPrice);
+  ret = await eggmanager.setBuyToken(testC20.contract.address, eggPrice);
+  await ret.wait()
+  ret = await eggmanager.setBuyToken(rwaJsonData[prefixKey]["USDT"], eggPrice);
+  await ret.wait()
 
   // eggManager合约重新部署过 或 core合约重新部署过 或 router合约重新部署过，都需要重新注册场景
   if (obj.flag || core.flag || newRouterContractFlag) {
     // 设置代理，并创建场景
-    let txHashSetProxy = await eggmanager.setProxy(core.contract.address, eggMngName)
+    let txHashSetProxy = await eggmanager.setProxy(core.contract.address)
     await txHashSetProxy.wait()
   }
 
@@ -249,7 +254,7 @@ async function ringManager(core, testC20, petT, transferProx) {
 
   if (obj.flag || core.flag || newRouterContractFlag) {
     // 配置代理，并创建场景
-    let txHashSetProxy = await ring.setProxy(core.contract.address, petPkName)
+    let txHashSetProxy = await ring.setProxy(core.contract.address)
     await txHashSetProxy.wait()
   }
 

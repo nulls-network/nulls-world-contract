@@ -3,22 +3,21 @@ pragma solidity ^0.8.0;
 
 interface INullsEggManager {
     
-    // 新宠物事件: 宠物id、批处理下标、itemID、玩家、宠物属性、随机数、uuid(前端开蛋时传递的)
+    // 新宠物事件: 宠物id、批处理下标、itemID、玩家、宠物属性、随机数
     event NewPet(
         uint petid, 
         uint batchIndex, 
         uint item, 
         address player, 
         bytes32 v, 
-        bytes32 rv, 
-        string uuid
+        bytes32 rv
     );
 
     // 预开蛋事件: itemID、业务hash、nonce值、过期时间
     event EggNewNonce(
         uint itemId, 
         bytes32 hv, 
-        uint256 nonce, 
+        bytes32 requestKey, 
         uint256 deadline
     );
 
@@ -28,7 +27,7 @@ interface INullsEggManager {
      * 要求: 
      *      - onlyOwner
      */
-    function setProxy(address proxy, string memory name) external;
+    function setProxy(address proxy) external;
 
     /*
      * 设置转账交易代理合约
@@ -91,7 +90,6 @@ interface INullsEggManager {
     function openMultiple(
         uint total, 
         uint itemId, 
-        uint256 deadline, 
-        string memory uuid
+        uint256 deadline
     ) external;
 }

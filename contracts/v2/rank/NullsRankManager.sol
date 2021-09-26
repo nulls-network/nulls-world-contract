@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../../interfaces/IOnlineGame.sol";
+import "../../interfaces/IZKRandomCallback.sol";
 import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../interfaces/ITransferProxy.sol";
@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
+contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
 
     struct RankTokenConfig {
         // 最小启动资金
@@ -21,10 +21,14 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
     struct DataInfo {
         uint challengerPetId;
         uint itemId;
-        uint256 nonce;
         address player;
         bool isOk;
-        string uuid;
+    }
+
+    struct PkPayRecord {
+        uint itemId;
+        address token;
+        uint amount;
     }
 
     using Counters for Counters.Counter;
@@ -54,6 +58,10 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
     mapping( uint => bool ) PetLocked; // petid -> beating  
 
     mapping( bytes32 => DataInfo) DataInfos;
+
+    mapping(bytes32 => bytes32) KeyToHv;
+
+    mapping(address => PkPayRecord) PkPayRecords;
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
@@ -86,9 +94,9 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
         }) ;
     }
 
-    function setProxy(address proxy, string memory name) external override onlyOwner {
+    function setProxy(address proxy) external override onlyOwner {
         Proxy = proxy;
-        SceneId = INullsWorldCore(Proxy).newScene(address(this), name);
+        SceneId = INullsWorldCore(Proxy).newScene(address(this));
     }
 
     function getSceneId() external override view returns(uint sceneId) {
@@ -103,11 +111,6 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
 
     function setPetToken( address petToken ) external override onlyOwner {
         PetToken = petToken ;
-    }
-
-    // check game contract is availabl.
-    function test() external view override returns( bool ) {
-        return IsOk;
     }
 
     function nonces(address player) external override view returns (uint256) {
@@ -220,16 +223,22 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
         }
     }
 
-    function doReward(address player, uint256 itemId, bytes32 rv, uint challengerPetId, string memory uuid) internal {
+    function doReward(address player, uint256 itemId, bytes32 rv, uint challengerPetId) internal {
         Rank memory rank = Ranks[itemId];
-        // 判断擂台奖金池
-        require(rank.bonusPool > 0, "NullsRankManager/The Rank bonus pool is 0");
 
-        // 计算挑战金(初始资金/倍率)
+        // 擂台不存在了,需要进行退款操作
+        if (rank.bonusPool == 0) {
+            PkPayRecord memory pkPayRecord = PkPayRecords[player];
+            if (pkPayRecord.itemId == itemId && pkPayRecord.token == rank.token && pkPayRecord.amount > 0) {
+                IERC20( rank.token ).transfer( player, pkPayRecord.amount);
+                delete PkPayRecords[player];
+                emit RefundPkFee(player, itemId, rank.token, pkPayRecord.amount);
+            }
+            return;
+        }
+
+        // 挑战金
         uint challengeCapital = rank.ticketAmt;
-
-        // 从挑战者账户扣款
-        TransferProxy.erc20TransferFrom(rank.token, player, address(this) , challengeCapital);
 
         // 挑战金分成
         (uint8 RankPoolRatio, uint8 RankOwnerRatio, uint8 gameOperatorRatio) = getRewardRatio(rank.total);
@@ -265,19 +274,19 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
                 // 解锁守擂宠物
                 PetLocked[rank.petId] = false ;
 
-                emit RankUpdate(itemId, challengerPetId, player, 0, rv, true, rank.bonusPool, uuid);
+                emit RankUpdate(itemId, challengerPetId, player, 0, rv, true, rank.bonusPool);
                 rank.bonusPool = 0;     
             } else {
                 // 只能赢走一半
                 uint poolBalance = rank.bonusPool / 2;
                 // 给挑战者转账
                 IERC20( rank.token ).transfer( player, poolBalance );
-                emit RankUpdate(itemId, challengerPetId, player, poolBalance , rv, true , poolBalance, uuid );
+                emit RankUpdate(itemId, challengerPetId, player, poolBalance , rv, true , poolBalance);
                 rank.bonusPool = poolBalance;
             }
         } else {
             // 庄家获胜
-            emit RankUpdate(itemId, challengerPetId, player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10, uuid);
+            emit RankUpdate(itemId, challengerPetId, player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10);
         }
         rank.total += 1;
         Ranks[itemId] = rank;
@@ -288,8 +297,7 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
     function pk(
         uint256 itemId,
         uint challengerPetId,
-        uint256 deadline,
-        string calldata uuid
+        uint256 deadline
     ) external override {
 
         require(block.timestamp <= deadline, "NullsRankManager: expired deadline");
@@ -299,6 +307,18 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
 
         // 是否在休息中
         require(block.timestamp > LastChallengeTime[challengerPetId] , "NullsRankManager/Pets at rest");
+
+        // 扣款
+        // 计算挑战金(初始资金/倍率)
+        Rank memory rank = Ranks[itemId];
+        uint challengeCapital = rank.ticketAmt;
+        TransferProxy.erc20TransferFrom(rank.token, msg.sender, address(this) , challengeCapital);
+
+        PkPayRecords[msg.sender] = PkPayRecord({
+            itemId: itemId,
+            token: rank.token,
+            amount: challengeCapital
+        });
 
         // 记录时间
         LastChallengeTime[challengerPetId] = block.timestamp + GeneralPetRestTime;
@@ -316,22 +336,25 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
         );
         
         // 调用预注册方法
-        uint256 nonce = INullsWorldCore(Proxy).getNonce(itemId, hv, msg.sender);
+        bytes32 requestKey = INullsWorldCore(Proxy).getNonce(itemId, hv);
+
+        KeyToHv[requestKey] = hv; 
+
         // 存储数据
         DataInfos[hv] = DataInfo({
             challengerPetId: challengerPetId,
             itemId: itemId,
-            nonce: nonce,
             player: msg.sender,
-            isOk: true,
-            uuid: uuid
+            isOk: true
         });
 
-        emit RankNewNonce(itemId, hv, nonce, deadline, msg.sender) ;
+        emit RankNewNonce(itemId, hv, requestKey, deadline, msg.sender) ;
     }
 
     // Receive proxy's message 
-    function notify( uint item , bytes32 hv , bytes32 rv ) external override isFromProxy returns ( bool ) {
+    function notify( uint item , bytes32 key , bytes32 rv ) external override isFromProxy returns ( bool ) {
+        
+        bytes32 hv = KeyToHv[key];
         // 获取业务数据
         DataInfo memory dataInfo = DataInfos[hv];
         require(item == dataInfo.itemId, "NullsRankManager/Item verification failed");
@@ -340,7 +363,7 @@ contract NullsRankManager is INullsRankManager, IOnlineGame, Ownable {
         // 防止重复消费data
         require(dataInfo.isOk, "NullsRankManager/Do not repeat consumption.");
 
-        doReward(dataInfo.player, dataInfo.itemId, rv, dataInfo.challengerPetId, dataInfo.uuid);
+        doReward(dataInfo.player, dataInfo.itemId, rv, dataInfo.challengerPetId);
         
         // isOk标志设置为false
         dataInfo.isOk = false;

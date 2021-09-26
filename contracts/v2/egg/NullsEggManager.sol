@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../../interfaces/IOnlineGame.sol";
+import "../../interfaces/IZKRandomCallback.sol";
 import "../../interfaces/INullsEggToken.sol";
 import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/INullsAfterBuyToken.sol";
@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
+contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
     struct BuyToken {
         uint amount ;
@@ -22,10 +22,8 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
     struct DataInfo {
         uint total;
         uint itemId;
-        uint256 nonce;
         address player;
         bool isOk;
-        string uuid;
     }
 
 
@@ -36,7 +34,7 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
     ITransferProxy TransferProxy;
     uint SceneId;
 
-    mapping( address => BuyToken ) BuyTokens ;  // token -> config
+    mapping( address => BuyToken ) BuyTokens ;
 
     using Counters for Counters.Counter;
 
@@ -44,6 +42,8 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
     mapping(address => Counters.Counter) Nonces;
 
     mapping( bytes32 => DataInfo) DataInfos;
+
+    mapping(bytes32 => bytes32) KeyToHv;
 
     address BuyAfterAddress ;   //购买后的处理函数
 
@@ -60,9 +60,9 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
         counter.increment();
     }
 
-    function setProxy(address proxy, string memory name) external override onlyOwner {
+    function setProxy(address proxy) external override onlyOwner {
         Proxy = proxy;
-        SceneId = INullsWorldCore(Proxy).newScene(address(this), name);
+        SceneId = INullsWorldCore(Proxy).newScene(address(this));
     }
 
     function setTransferProxy(address proxy) external override onlyOwner {
@@ -97,12 +97,9 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
         price = buyToken.amount;
     }
 
-    function test() external view override returns (bool) {
-        return IsOk;
-    }
+    function notify(uint item , bytes32 key , bytes32 rv) external override isFromProxy returns (bool) {
 
-    function notify(uint item , bytes32 hv , bytes32 rv) external override isFromProxy returns (bool) {
-
+        bytes32 hv = KeyToHv[key];
         // 获取业务数据
         DataInfo memory dataInfo = DataInfos[hv];
 
@@ -114,7 +111,7 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
         TransferProxy.erc20TransferFrom(EggToken, dataInfo.player, address(this), dataInfo.total);
         // IERC20 egg = IERC20( EggToken ) ;
         for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
-            _openOne( i , dataInfo.itemId , dataInfo.player , rv, dataInfo.uuid) ;
+            _openOne( i , dataInfo.itemId , dataInfo.player , rv) ;
         }
  
         // isOk标志设置为false
@@ -124,7 +121,7 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
         return true;
     }
 
-    function _openOne( uint8 index , uint item , address player , bytes32 rv, string memory uuid ) internal returns ( uint petid ){
+    function _openOne( uint8 index , uint item , address player , bytes32 rv ) internal returns ( uint petid ){
         //random v 
         bytes32 val = keccak256( abi.encode(
             player , 
@@ -135,7 +132,7 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
         petid = INullsPetToken( PetToken ).mint( player , val ) ;
 
         //emit Open
-        emit NewPet(petid, index , item, player, val , rv, uuid);
+        emit NewPet(petid, index , item, player, val , rv);
     }
 
     // approve -> transferFrom
@@ -164,8 +161,7 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
     function openMultiple(
         uint total ,
         uint itemId , 
-        uint256 deadline,
-        string memory uuid
+        uint256 deadline
     ) external override {
         require( total > 0 && total <=20 , "NullsEggManager/Use 1-20 at a time.");
 
@@ -181,21 +177,20 @@ contract NullsEggManager is INullsEggManager, IOnlineGame, Ownable {
                 _useNonces(msg.sender),
                 block.chainid
             )
-        );
-        
+        );       
 
         // 调用预注册方法
-        uint256 nonce = INullsWorldCore(Proxy).getNonce(itemId, hv, msg.sender);
+        bytes32 requestKey = INullsWorldCore(Proxy).getNonce(itemId, hv);
+
+        KeyToHv[requestKey] = hv; 
 
         // 存储
         DataInfos[hv] = DataInfo({
             total: total,
             itemId: itemId,
-            nonce: nonce,
             player: msg.sender,
-            isOk: true,
-            uuid: uuid
+            isOk: true
         });
-        emit EggNewNonce(itemId, hv, nonce, deadline);
+        emit EggNewNonce(itemId, hv, requestKey, deadline);
     }
 }
