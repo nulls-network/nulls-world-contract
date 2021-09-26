@@ -1,20 +1,21 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "../interfaces/IOnlineGame.sol";
-import "../interfaces/IOnlineRouter.sol";
+import "../interfaces/IZKRandomCallback.sol";
+import "../interfaces/IZKRandomCore.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract NullsWorldCore is IOnlineGame, Ownable {
+contract NullsWorldCore is IZKRandomCallback, Ownable {
 
     // random oracle
     address RandomOracle;
-    IOnlineRouter OnlineRouter;
+    IZKRandomCore ZKRandomCore;
 
     uint256 GameId;
     mapping(uint256 => uint256) Items;      // itemId -> sceneId 
-    mapping(uint256 => address ) Scenes ;   // sceneId -> proxyAddress
+    address[] Scenes;
     bool GameStatus = true;
 
     // newItem白名单
@@ -26,7 +27,7 @@ contract NullsWorldCore is IOnlineGame, Ownable {
     }
 
     constructor(address router) {
-        OnlineRouter = IOnlineRouter(router);
+        ZKRandomCore = IZKRandomCore(router);
     }
 
     // 设置允许哪些合约地址调用newItem接口
@@ -34,18 +35,20 @@ contract NullsWorldCore is IOnlineGame, Ownable {
         newItemWhiteList[user] = true;
     }
 
-    function registerGame(string memory gameName) external onlyOwner {
-        GameId = OnlineRouter.registGame(
-            address(this),
-            gameName,
-            address(this)
-        );
+    // 注册游戏之前需要先确保账户余额充足，并授权给Zkrandom合约
+    function approve(address tokenAddr, uint amount) external onlyOwner {
+        require(address(ZKRandomCore) != address(0), "NullsWorldCore/Target account error.");
+        IERC20(tokenAddr).approve(address(ZKRandomCore), amount);
     }
 
-    function newScene( address addr , string memory name ) external onlyOwnerOrWhiteList returns (uint sceneId) {
-        sceneId = OnlineRouter.addScene(GameId, name);
-        require( IOnlineGame(addr).test() , "NullsWorldCore/Need to extend IOnlineGame.sol " ) ;
-        Scenes[sceneId] = addr ;
+    function registerGame(string memory gameName, uint256 depositAmt) external onlyOwner {
+        GameId = ZKRandomCore.regist(gameName, address(this), depositAmt);
+    }
+
+    // 游戏内部还保留newScene，方便做路由回调
+    function newScene( address addr ) external onlyOwnerOrWhiteList returns (uint sceneId) {
+        sceneId = Scenes.length;
+        Scenes.push(addr);
     }
 
 
@@ -54,64 +57,32 @@ contract NullsWorldCore is IOnlineGame, Ownable {
         uint256 sceneId,
         address pubkey
     ) external onlyOwnerOrWhiteList returns (uint256 itemId) {
-        itemId = OnlineRouter.addItem(sceneId, pubkey);
+        itemId = ZKRandomCore.newItem(GameId, address(this), pubkey);
         Items[itemId] = sceneId;
     }
 
-    function _checkPublicKey( uint itemId , uint8 v , bytes32 r , bytes32 s , bytes memory privateKey ) internal view {
-        ( , address pubkey ) = OnlineRouter.gameinfo(itemId);
-        require( pubkey != address(0) , "NullsWorldCore/No public key.") ;
-        bytes32 h = keccak256( abi.encode(
-            "nulls.world-core",
-            privateKey , 
-            block.chainid 
-        )) ;
-        address rec = ecrecover( h , v, r, s ) ;
-        require( rec != address(0) , "NullsWorldCore/Wrong signature." ) ;
-        require( rec == pubkey , "NullsWorldCore/No match publickey." ) ;
-    }
-
-    function publishAndNewItem(
-        uint256 sceneId,
-        uint256 itemId,
-        uint8 v , 
-        bytes32 r , 
-        bytes32 s ,
-        bytes memory privateKey,
-        address newPubKey
-    ) external onlyOwner returns ( uint newItemId ) {
-        // require(Items[itemId] > 0 , "NullsWorldCore/No match item.");
-        _checkPublicKey(itemId, v, r, s, privateKey);
-        newItemId = OnlineRouter.publistAndNewItem(sceneId, itemId , privateKey, newPubKey);
-        Items[ newItemId ] = sceneId ;
-    }
-
-    function getNonce(uint256 itemId, bytes32 hv, address player) public returns(uint256 nonce) {
-       return OnlineRouter.getNonce(itemId, hv, player);
-    }
-
-    function test() external view override returns (bool) {
-        return GameStatus;
+    function getNonce(uint256 itemId, bytes32 hv) public returns(bytes32 requestKey) {
+       return ZKRandomCore.accept(address(this), itemId, hv);
     }
 
     function notify(
-        uint256 item,
-        bytes32 hv,
+        uint item,
+        bytes32 key,
         bytes32 rv
     ) external override returns (bool) {
         uint sceneId = Items[item] ;
         address sceneAddr = Scenes[sceneId] ;
-        return IOnlineGame(sceneAddr).notify(item, hv, rv);
+        return IZKRandomCallback(sceneAddr).notify(item, key, rv);
     }
  
     function play(
-        bytes32 hv,
+        bytes32 key,
         uint256 deadline,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external { 
-        OnlineRouter.play(hv, deadline, v, r, s);
+        ZKRandomCore.generateRandom(key, deadline, v, r, s);
     }
 
 }

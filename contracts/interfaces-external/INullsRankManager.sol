@@ -39,7 +39,7 @@ interface INullsRankManager {
         address publicKey
     );
 
-    // 擂台状态更新: itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值、uuid用于找回pk结果
+    // 擂台状态更新: itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值
     event RankUpdate(
         uint256 itemId, 
         uint challengerPetId, 
@@ -47,17 +47,23 @@ interface INullsRankManager {
         uint bonusPool, 
         bytes32 rv, 
         bool isWin, 
-        uint value, 
-        string uuid
+        uint value
     );
 
     // 擂台挑战预获取nonce值: itemId、业务hash、nonce、过期时间、用户
     event RankNewNonce(
         uint itemId, 
         bytes32 hv, 
-        uint256 nonce, 
+        bytes32 requestKey, 
         uint256 deadline, 
         address user
+    );
+
+    event RefundPkFee(
+        address user,
+        uint itemId,
+        address token,
+        uint amount
     );
 
     // --- public mapping的view方法
@@ -88,7 +94,7 @@ interface INullsRankManager {
      * 要求: 
      *      - onlyOwner
      */
-    function setProxy(address proxy, string memory name) external;
+    function setProxy(address proxy) external;
 
     /*
      * 设置宠物token合约
@@ -158,7 +164,6 @@ interface INullsRankManager {
     function pk(
         uint256 itemId,
         uint challengerPetId,
-        uint256 deadline,
-        string calldata uuid
+        uint256 deadline
     ) external;
 }

@@ -1,30 +1,28 @@
 const hre = require("hardhat")
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
-// npx hardhat run test/egg/buy.js --network ht-testnet-user1
+// npx hardhat run test/market/buyPet.js --network ht-testnet
 
-const contractName = "NullsEggManager";
-const contractAddr = "0xF645Ac66E9cCf4D3c38B79a7Ad240fBb158a7058";
+const contractName = "NullsPetToken";
+const contractAddr = "0x416914b24eDb3A4dd6Ab62d034fd7827fB233024";
 
-const buyEggTokenContractName = "NullsERC20Token";
-const buyEggTokenAddr = "0x6aA7CF4F83c6a88cABD93b40D47E7144311882B8";
 const transferProxy = "0x3Cc1Ad4766c8b4D8a21B233Bae4Ef55c30139Ebd";
 
-// 买蛋数量
-const buyCount = 1000; 
-const price = 100 * 1000000;
+const c20TokenAddr = "0x6aA7CF4F83c6a88cABD93b40D47E7144311882B8";
+const c20TokenContractName = "NullsERC20Token";
 
+const petId = 200;
+const sellFee = 100;
 async function main() {
 
-  contract = await connectContract(contractName, contractAddr)
+  rankContract = await connectContract(contractName, contractAddr)
   
   // 授权
-  tokenContract = await connectContract(buyEggTokenContractName, buyEggTokenAddr)
-  ret = await tokenContract.approve(transferProxy, buyCount * price)
+  tokenContract = await connectContract(c20TokenContractName, c20TokenAddr)
+  ret = await tokenContract.approve(transferProxy, sellFee)
   await ret.wait();
 
-  // 购买
-  ret = await contract.buy(buyCount, buyEggTokenAddr)
+  ret = await rankContract.buyPet(petId)
   await ret.wait()
 }
 

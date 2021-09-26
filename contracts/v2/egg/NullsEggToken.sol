@@ -24,7 +24,7 @@ contract NullsEggToken is ERC20, INullsEggToken {
         return Decimals;
     }
 
-    constructor() ERC20("NullsEgg Token ","NET") {
+    constructor() ERC20("NullsEgg Token ","EGG") {
         Owner = msg.sender ;
         Oper = msg.sender ;
     }
