@@ -1,19 +1,17 @@
 const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
+const {address,contractName,erc20Name } = require("./config.json");
 
 const approveAmount = BigNumber.from(10).pow(25);
 ///npx hardhat run test/ido/ido-test.js 
 
-const contractName = "IdoCore";
-const address = "0xC7356A6FaF6ceB273e5B17d3Be08aaD2CF961655";
-const idoToken = "IdoToken";
 const past = 1622394922;
 
 async function getData() {
   const [owner] = await hre.ethers.getSigners();
   const ido = await connectContract(contractName, address);
   const stakingAddress = await ido.StakingToken();
-  const staking = await connectContract(idoToken, stakingAddress);
+  const staking = await connectContract(erc20Name, stakingAddress);
   data = {
     staking: staking,
     ido: ido,
@@ -29,13 +27,13 @@ async function main() {
   await stake();
 
   //设置时间
-  // await setDeadline();
+  await setPeriodFinish();
 
   // 添加流动性
-  // await addLiquidity();
+  await addLiquidity();
 
   // 领取奖励
-  // await getReward();
+  await getReward();
 
   // ------------------- 查询
 
@@ -64,21 +62,21 @@ async function stake() {
 
 
 //修改时间 （管理员）
-async function setDeadline(time = past) {
+async function setPeriodFinish(time = past) {
   const { staking, ido, owner } = await getData();
 
-  const tx = await (await ido.setDeadline(time)).wait();
-  console.log("setDeadline: ", tx.transactionHash);
+  const tx = await (await ido.setPeriodFinish(time)).wait();
+  console.log("setPeriodFinish: ", tx.transactionHash);
 }
 
 //添加流动性  （管理员）
 async function addLiquidity() {
   const { staking, ido, owner } = await getData();
-  let deadLine = await ido.Deadline();
-  deadLine = deadLine.mul(1000);
+  let periodFinish = await ido.PeriodFinish();
+  periodFinish = periodFinish.mul(1000);
   const now = BigNumber.from(new Date().getTime());
-  if (now.lt(deadLine)) {
-    await setDeadline(past)
+  if (now.lt(periodFinish)) {
+    await setPeriodFinish()
   }
   const tx = await (await ido.addLiquidity()).wait();
   console.log("addLiquidity: ", tx.transactionHash);
