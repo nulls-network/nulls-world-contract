@@ -3,25 +3,22 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./swap/IUniswapV2Factory.sol";
-import "./swap/IUniswapV2Router.sol";
-import "./swap/IUniswapV2Pair.sol";
+import "./swap/interface/IUniswapV2Factory.sol";
+import "./swap/interface/IUniswapV2Pair.sol";
+import "./swap/SwapRouter.sol";
 
-contract IdoCore is Ownable {
+contract IdoCore is Ownable, SwapRouter {
     using Math for uint256;
     //100 day
-    uint256 public constant PERIOD_FINISH = 8640000;
+    uint256 public constant REWARDS_FINISH = 8640000;
 
     mapping(address => uint256) public BalanceOf;
+
     uint256 public TotalSupply;
     address public StakingToken;
     address public RewardsToken;
-    IUniswapV2Router public immutable Router;
-
-    uint256 public Deadline;
-
+    uint256 public PeriodFinish;
     uint256 public Destroy;
-
     uint256 public TotalLP;
 
     mapping(address => uint256) ReceivedLast;
@@ -33,8 +30,6 @@ contract IdoCore is Ownable {
         uint256 rewardStaking,
         uint256 rewardToken
     );
-
-    event Test(uint256 indexed amount1, uint256 indexed amount2);
 
     modifier OnStake() {
         // require(block.timestamp < Deadline, "Cannot be performed stake");
@@ -49,22 +44,23 @@ contract IdoCore is Ownable {
     constructor(
         address _stakingToken,
         address _rewardsToken,
-        address _router,
-        uint256 _deadline
-    ) {
+        address _factory,
+        uint256 _periodFinish
+    ) SwapRouter(_factory) {
         StakingToken = _stakingToken;
         RewardsToken = _rewardsToken;
-        Router = IUniswapV2Router(_router);
-        Deadline = _deadline;
+        PeriodFinish = _periodFinish;
     }
 
-    //延长时间
-    function setDeadline(uint256 deadline) external onlyOwner {
-        if (deadline == 0) {
-            Deadline = deadline;
+    function setPeriodFinish(uint256 periodFinish) external onlyOwner {
+        if (periodFinish == 0) {
+            PeriodFinish = periodFinish;
         } else {
-            require(block.timestamp < Deadline, "Cannot be performed stake");
-            Deadline = deadline;
+            require(
+                block.timestamp < PeriodFinish,
+                "Cannot be performed stake"
+            );
+            PeriodFinish = periodFinish;
         }
     }
 
@@ -88,50 +84,31 @@ contract IdoCore is Ownable {
         if (staking > TotalSupply) {
             //todo
         }
-        IERC20(RewardsToken).approve(address(Router), rewards * 10);
-        IERC20(StakingToken).approve(address(Router), staking * 10);
-        (, , uint256 liquidity) = Router.addLiquidity(
+        (, , uint256 liquidity) = _safeAddLiquidity(
             StakingToken,
             RewardsToken,
             TotalSupply,
             rewards,
             1,
             1,
-            address(this),
             block.timestamp
         );
-        address pair = pairFor(StakingToken, RewardsToken);
-        IUniswapV2Pair(pair).approve(address(Router), liquidity * 10);
-        Destroy += rewards / PERIOD_FINISH;
+        Destroy += rewards / REWARDS_FINISH;
         TotalLP += liquidity;
-    }
-
-    function rateOf(address account) public view returns (uint256) {
-        uint256 time = rewardTime(account);
-        uint256 balanceRate = (BalanceOf[account] * 0x989680) / TotalSupply;
-        return (balanceRate * time) / PERIOD_FINISH;
-    }
-
-    function rewardTime(address account) public view returns (uint256) {
-        return
-            Math.min(block.timestamp - Deadline, PERIOD_FINISH) -
-            ReceivedLast[account];
     }
 
     function getReward() external OnReward {
         uint256 time = rewardTime(msg.sender);
         uint256 rate = rateOf(msg.sender);
-
-        uint256 liquidity = (rate * TotalLP) / 0x989680;
-        emit Test(rate, liquidity);
-        require(liquidity > 0, "Low liquidity");
-        (uint256 amount0, uint256 amount1) = Router.removeLiquidity(
+        uint256 liquidity = rate * TotalLP;
+        require(liquidity >= 0x989680, "Insufficient liquidity");
+        liquidity /=  0x989680;
+        (uint256 amount0, uint256 amount1) = _safeRemoveLiquidity(
             StakingToken,
             RewardsToken,
             liquidity,
             1,
             1,
-            address(this),
             block.timestamp
         );
         (address tokenA, ) = sortTokens(StakingToken, RewardsToken);
@@ -145,40 +122,27 @@ contract IdoCore is Ownable {
             amountStaking = stakingBalance;
         }
         IERC20(StakingToken).transfer(msg.sender, amountStaking);
-        uint256 give = 0;
-        if (amountStaking > amountAccount) {
-            // IERC20(RewardsToken).transfer(address(1), amountRewards);
-            give = 1;
-        } else if (amountStaking == amountAccount) {
-            give = 2;
-        } else {
-            give = amountRewards - (Destroy * time);
-            give = (give * rate) / 0x989680;
+
+        if (amountStaking < amountAccount ) {
+          uint256 destroyAmount = Destroy * time;
+          if(amountRewards > destroyAmount){
+            uint give=(amountRewards - destroyAmount) * rate / 0x989680;
             IERC20(RewardsToken).transfer(msg.sender, give);
+            }
         }
-        emit Test(amountAccount, amountStaking);
         ReceivedLast[msg.sender] += time;
-        emit RewardPaid(msg.sender, amountStaking, give);
+        emit RewardPaid(msg.sender, amountStaking, liquidity);
     }
 
-    function pairFor(address tokenA, address tokenB)
-        public
-        view
-        returns (address pair)
-    {
-        pair = IUniswapV2Factory(Router.factory()).getPair(tokenA, tokenB);
+    function rateOf(address account) public view returns (uint256) {
+        uint256 time = rewardTime(account);
+        uint256 balanceRate = (BalanceOf[account] * 0x989680) / TotalSupply;
+        return (balanceRate * time) / REWARDS_FINISH;
     }
 
-    // returns sorted token addresses, used to handle return values from pairs sorted in this order
-    function sortTokens(address tokenA, address tokenB)
-        internal
-        pure
-        returns (address token0, address token1)
-    {
-        require(tokenA != tokenB, "SWAP: IDENTICAL_ADDRESSES");
-        (token0, token1) = tokenA < tokenB
-            ? (tokenA, tokenB)
-            : (tokenB, tokenA);
-        require(token0 != address(0), "SWAP: ZERO_ADDRESS");
+    function rewardTime(address account) public view returns (uint256) {
+        return
+            Math.min(block.timestamp - PeriodFinish, REWARDS_FINISH) -
+            ReceivedLast[account];
     }
 }
