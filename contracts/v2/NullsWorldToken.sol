@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../interfaces/INullsWorldToken.sol";
 
-contract NullsWorldToken is ERC20 {
+contract NullsWorldToken is INullsWorldToken, ERC20 {
 
     address Owner ;
     address Oper ;
@@ -60,14 +61,14 @@ contract NullsWorldToken is ERC20 {
     }
 
     function _getDayIndex() public view returns ( uint idx ) {
-        idx = ( block.timestamp - BeginTime ) % ( 1 days ) ;
+        idx = ( block.timestamp - BeginTime ) / ( 1 days ) ;
     }
 
     function setBeginTime( uint ts ) external onlyOwner {
         BeginTime = ts ;
     }
 
-    function incrDayScore( uint score ) external onlyOper updateDayIndex {
+    function incrDayScore( uint score ) external override onlyOper updateDayIndex {
         address player = msg.sender ;
         uint tv = 0 ;
         uint dayIndex = _getDayIndex();

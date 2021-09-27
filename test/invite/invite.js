@@ -4,7 +4,7 @@ const hre = require("hardhat")
 // npx hardhat run test/invite/invite.js --network ht-testnet-user1
 
 const contractName = "NullsInvite";
-const contractAddr = "0x6c38279b09BE1dc50955E55f4B20E2BF38eF5Db3";
+const contractAddr = "0xAc7Ed1Bfb27ECC2531Cae2E77811Fa1d57335929";
 const superior = "0xB1877E668f3827FF8301EfEAe6aB7aB081d75f11";
 
 async function main() {
