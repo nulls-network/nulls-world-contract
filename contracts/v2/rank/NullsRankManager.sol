@@ -6,6 +6,7 @@ import "../../interfaces/INullsPetToken.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../interfaces/ITransferProxy.sol";
 import "../../interfaces-external/INullsRankManager.sol";
+import "../../interfaces/INullsAfterPk.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
@@ -32,6 +33,8 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
     }
 
     using Counters for Counters.Counter;
+
+    address PkAfter ;
 
     address Proxy = address(0);
     address PetToken = address(0);
@@ -75,6 +78,10 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
 
     function setTransferProxy(address proxy) external override onlyOwner {
         TransferProxy = ITransferProxy(proxy);
+    }
+
+    function setAfterProccess( address afterAddr ) external override onlyOwner {
+        PkAfter = afterAddr ;
     }
 
     function getRankInfo(uint256 rankId) external override view returns(Rank memory rank) {
@@ -226,10 +233,13 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
     function doReward(address player, uint256 itemId, bytes32 rv, uint challengerPetId) internal {
         Rank memory rank = Ranks[itemId];
 
+        // 挑战金
+        uint challengeCapital = rank.ticketAmt;
+        
         // 擂台不存在了,需要进行退款操作
         if (rank.bonusPool == 0) {
             PkPayRecord memory pkPayRecord = PkPayRecords[player];
-            if (pkPayRecord.itemId == itemId && pkPayRecord.token == rank.token && pkPayRecord.amount > 0) {
+            if (pkPayRecord.itemId == itemId && pkPayRecord.token == rank.token && pkPayRecord.amount == challengeCapital) {
                 IERC20( rank.token ).transfer( player, pkPayRecord.amount);
                 delete PkPayRecords[player];
                 emit RefundPkFee(player, itemId, rank.token, pkPayRecord.amount);
@@ -237,8 +247,6 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
             return;
         }
 
-        // 挑战金
-        uint challengeCapital = rank.ticketAmt;
 
         // 挑战金分成
         (uint8 RankPoolRatio, uint8 RankOwnerRatio, uint8 gameOperatorRatio) = getRewardRatio(rank.total);
@@ -274,22 +282,26 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
                 // 解锁守擂宠物
                 PetLocked[rank.petId] = false ;
 
-                emit RankUpdate(itemId, challengerPetId, player, 0, rv, true, rank.bonusPool);
+                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, 0, rv, true, rank.bonusPool);
                 rank.bonusPool = 0;     
             } else {
                 // 只能赢走一半
                 uint poolBalance = rank.bonusPool / 2;
                 // 给挑战者转账
                 IERC20( rank.token ).transfer( player, poolBalance );
-                emit RankUpdate(itemId, challengerPetId, player, poolBalance , rv, true , poolBalance);
+                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, poolBalance , rv, true , poolBalance);
                 rank.bonusPool = poolBalance;
             }
         } else {
             // 庄家获胜
-            emit RankUpdate(itemId, challengerPetId, player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10);
+            emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10);
         }
         rank.total += 1;
         Ranks[itemId] = rank;
+
+        if (PkAfter != address(0)) {
+            INullsAfterPk(PkAfter).doAfterPk(player, rank.token, challengeCapital);
+        }
         
     }
 

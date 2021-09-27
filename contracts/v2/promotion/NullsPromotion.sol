@@ -2,14 +2,14 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces-external/INullsInvite.sol";
-import "../../interfaces/INullsAfterBuyToken.sol";
+import "../../interfaces/INullsAfterBuyEgg.sol";
 import "../../interfaces-external/INullsPromotion.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // 促销合约
 // 所有计算没有使用 SafeMath , 需要考虑溢出情况。
-contract NullsPromotion is INullsPromotion, Ownable, INullsAfterBuyToken {
+contract NullsPromotion is INullsPromotion, Ownable, INullsAfterBuyEgg {
 
     address RewardToken ;
     uint RewardTotal ;

@@ -39,10 +39,11 @@ interface INullsRankManager {
         address publicKey
     );
 
-    // 擂台状态更新: itemId、挑战者宠物id、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值
+    // 擂台状态更新: itemId、挑战者宠物id、休息结束时间、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值
     event RankUpdate(
         uint256 itemId, 
         uint challengerPetId, 
+        uint restEndTime,
         address challenger, 
         uint bonusPool, 
         bytes32 rv, 
@@ -111,6 +112,8 @@ interface INullsRankManager {
      *      - onlyOwner
      */
     function addRankToken(address token, uint minInitialCapital) external;
+
+    function setAfterProccess( address afterAddr ) external;
 
     /*
      * 获取擂台信息

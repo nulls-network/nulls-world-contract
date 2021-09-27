@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "../../interfaces/IZKRandomCallback.sol";
 import "../../interfaces/INullsEggToken.sol";
 import "../../interfaces/INullsPetToken.sol";
-import "../../interfaces/INullsAfterBuyToken.sol";
+import "../../interfaces/INullsAfterBuyEgg.sol";
 import "../../interfaces/INullsWorldCore.sol";
 import "../../interfaces/ITransferProxy.sol";
 import "../../interfaces-external/INullsEggManager.sol";
@@ -31,6 +31,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
     address PetToken ;
     address Proxy;
     address BuyTokenAfter ;
+    address BigPrizePool;
     ITransferProxy TransferProxy;
     uint SceneId;
 
@@ -67,6 +68,10 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
     function setTransferProxy(address proxy) external override onlyOwner {
         TransferProxy = ITransferProxy(proxy);
+    }
+
+    function setBigPrizePool(address addr) external override onlyOwner {
+        BigPrizePool = addr;
     }
 
     function setPetTokenAndEggToken( address eggToken , address petToken ) external override onlyOwner {
@@ -144,17 +149,22 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         require( buyToken.isOk == true , "NullsEggManager/Not allow token." ) ;
         uint amount = total * buyToken.amount ;
 
-        //got token 
-        TransferProxy.erc20TransferFrom(token, sender, owner(), amount);
+        uint serviceProviderAmount = amount / 10;
+        uint bigPrizePoolAmount = amount - serviceProviderAmount;
 
-        // show buyer the egg .
+        // transfer to service provider
+        TransferProxy.erc20TransferFrom(token, sender, owner(), serviceProviderAmount);
+
+        // transfer to big prize pool
+        TransferProxy.erc20TransferFrom(token, sender, BigPrizePool, bigPrizePoolAmount);
+
         INullsEggToken( EggToken ).mint( sender , total ) ; 
 
         // after proccess 
         if( BuyTokenAfter != address(0) ) {
             //approve to after 
             // IERC20( token ).approve( address(this) , amount );
-            INullsAfterBuyToken( BuyTokenAfter ).doAfter(sender, total, token, amount );
+            INullsAfterBuyEgg( BuyTokenAfter ).doAfter(sender, total, token, amount );
         }
     } 
 
@@ -192,5 +202,6 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             isOk: true
         });
         emit EggNewNonce(itemId, hv, requestKey, deadline);
+        emit OpenEggBefore(msg.sender, total);
     }
 }

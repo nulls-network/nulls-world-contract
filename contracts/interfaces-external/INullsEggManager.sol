@@ -21,6 +21,12 @@ interface INullsEggManager {
         uint256 deadline
     );
 
+    // 预开蛋标记：用户、开蛋数量
+    event OpenEggBefore(
+        address user,
+        uint256 amount
+    );
+
     /*
      * 设置核心合约
      *
@@ -60,6 +66,8 @@ interface INullsEggManager {
      *      - onlyOwner
      */
     function setBuyToken(address token, uint amount) external;
+
+    function setBigPrizePool(address addr) external;
 
     /*
      * 获取当前合约的场景id

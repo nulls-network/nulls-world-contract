@@ -27,6 +27,14 @@ module.exports = {
     "ht-testnet-user1" : {
       url : "https://http-testnet.huobichain.com" ,
       accounts : ['fe713dc69ff3cd970ada3cf812701c943bac9daec8f730bad600ce4570cff627']
+    },
+    "ht-testnet-user2" : {
+      url : "https://http-testnet.huobichain.com" ,
+      accounts : ['4a80ed77cc0d5dc214c5f358fd0fc49c0ed9926e178c170b0491f0770edbc530']
+    },
+    "ht-testnet-user3" : {
+      url : "https://http-testnet.huobichain.com" ,
+      accounts : ['ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80']
     }
   }
 };
