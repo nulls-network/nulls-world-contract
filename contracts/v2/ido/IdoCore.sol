@@ -32,12 +32,12 @@ contract IdoCore is Ownable, SwapRouter {
     );
 
     modifier OnStake() {
-        // require(block.timestamp < Deadline, "Cannot be performed stake");
+        require(block.timestamp < PeriodFinish, "Cannot be performed stake");
         _;
     }
 
     modifier OnReward() {
-        // require(block.timestamp > Deadline, "Cannot be performed reward");
+        require(block.timestamp > PeriodFinish, "Cannot be performed reward");
         _;
     }
 
