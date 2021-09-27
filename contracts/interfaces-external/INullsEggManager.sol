@@ -69,6 +69,10 @@ interface INullsEggManager {
 
     function setBigPrizePool(address addr) external;
 
+    function setGodPetProbabilityValue(uint16 val) external;
+
+    function getGodPetProbabilityValue() external view returns(uint16 val);
+
     /*
      * 获取当前合约的场景id
      *

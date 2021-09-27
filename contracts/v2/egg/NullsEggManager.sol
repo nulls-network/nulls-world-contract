@@ -50,6 +50,15 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
     bool IsOk = true;
 
+    // 达到此数量，必中擂台宠物
+    // 为0不开启此功能
+    uint16 GodPetProbabilityValue = 0;
+
+    // 必中擂台宠物，当此数值达到GodPetProbabilityValue时，必定开出擂台宠物
+    // 每开到一个普通宠物，该数值+1
+    // 当开出擂台宠物时，此值清零
+    mapping(address => uint16) public GodPetProbability;
+
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsEggManager/Is not from proxy.");
         _;
@@ -59,6 +68,14 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         Counters.Counter storage counter = Nonces[player];
         current = counter.current();
         counter.increment();
+    }
+
+    function setGodPetProbabilityValue(uint16 val) external override onlyOwner {
+        GodPetProbabilityValue = val;
+    }
+
+    function getGodPetProbabilityValue() external view override onlyOwner returns(uint16 val) {
+        val = GodPetProbabilityValue;
     }
 
     function setProxy(address proxy) external override onlyOwner {
@@ -134,6 +151,18 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             index , 
             rv 
         )) ;
+        if (GodPetProbabilityValue != 0) {
+            if (uint8(bytes1(val)) != 0xff) {
+                GodPetProbability[player] += 1;
+                if (GodPetProbability[player] >= GodPetProbabilityValue) {
+                    GodPetProbability[player] = 0;
+                    // 发擂台宠物
+                    val |= 0xff00000000000000000000000000000000000000000000000000000000000000;
+                }
+            } else {
+                GodPetProbability[player] = 0;
+            }
+        }
         petid = INullsPetToken( PetToken ).mint( player , val ) ;
 
         //emit Open
