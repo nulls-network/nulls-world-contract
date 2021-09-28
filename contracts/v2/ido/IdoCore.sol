@@ -11,7 +11,8 @@ import "./swap/SwapRouter.sol";
 contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
     using Math for uint256;
     //100 day
-    uint256 public constant REWARDS_FINISH = 8640000;
+    uint256 public constant REWARDS_FINISH = 100 days;
+    uint256 public MinimumStaking = 0;
 
     mapping(address => uint256) public BalanceOf;
 
@@ -21,6 +22,8 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
     uint256 public PeriodFinish;
     uint256 public Destroy;
     uint256 public TotalLP;
+
+    uint256 public ReceivedLP;
 
     mapping(address => uint256) ReceivedLast;
 
@@ -53,8 +56,12 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
         PeriodFinish = _periodFinish > block.timestamp ? _periodFinish : 0;
     }
 
+    function setData(uint256 minimum) external onlyOwner {
+        MinimumStaking = minimum;
+    }
+
     function setPeriodFinish(uint256 periodFinish) external onlyOwner {
-        require(periodFinish > 0, 'Cannot be zero');
+        require(periodFinish > 0, "Cannot be zero");
         if (PeriodFinish == 0) {
             PeriodFinish = periodFinish;
         } else {
@@ -67,6 +74,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
     }
 
     function stake(uint256 amount) external nonReentrant OnStake {
+        require(amount > MinimumStaking, "amount to low");
         require(
             IERC20(StakingToken).transferFrom(
                 msg.sender,
@@ -113,6 +121,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
             1,
             block.timestamp
         );
+        ReceivedLP += liquidity;
         (address tokenA, ) = sortTokens(StakingToken, RewardsToken);
         (uint256 amountStaking, uint256 amountRewards) = tokenA == StakingToken
             ? (amount0, amount1)
@@ -128,7 +137,8 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
         if (amountStaking < amountAccount) {
             uint256 destroyAmount = Destroy * time;
             if (amountRewards > destroyAmount) {
-                uint256 give = ((amountRewards - destroyAmount) * rate) / 0x989680;
+                uint256 give = ((amountRewards - destroyAmount) * rate) /
+                    0x989680;
                 IERC20(RewardsToken).transfer(msg.sender, give);
             }
         }

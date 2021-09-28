@@ -1,6 +1,6 @@
 const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
-const {address,contractName,erc20Name } = require("./config.json");
+const { address, contractName, erc20Name } = require("./config.json");
 
 const approveAmount = BigNumber.from(10).pow(25);
 ///npx hardhat run test/ido/ido-test.js 
@@ -26,14 +26,17 @@ async function main() {
   // 抵押
   await stake();
 
+  //设置参数 （minimum：最低认购金额）
+  await setData();
+
   //设置时间
-  await setPeriodFinish();
+  // await setPeriodFinish();
 
-  // 添加流动性
-  await addLiquidity();
+  // // 添加流动性
+  // await addLiquidity();
 
-  // 领取奖励
-  await getReward();
+  // // 领取奖励
+  // await getReward();
 
   // ------------------- 查询
 
@@ -45,6 +48,12 @@ async function main() {
 
   //查询总金额
   // await totalSupply();
+
+  //已领取lp
+  // await receivedLP();
+
+  //最少认购金额
+  // await minimumStaking();
 
 }
 // -----------操作
@@ -67,6 +76,14 @@ async function setPeriodFinish(time = past) {
 
   const tx = await (await ido.setPeriodFinish(time)).wait();
   console.log("setPeriodFinish: ", tx.transactionHash);
+}
+
+//设置参数 （minimum：最低认购金额） （管理员）
+async function setData(minimum = 1000000) {
+  const { staking, ido, owner } = await getData();
+
+  const tx = await (await ido.setData(minimum)).wait();
+  console.log("setData: ", tx.transactionHash);
 }
 
 //添加流动性  （管理员）
@@ -100,14 +117,17 @@ async function rewardTime() {
   console.log("rewardTime: ", await ido.rewardTime(owner.address))
 }
 
-
-async function pairFor() {
+//已领取lp
+async function receivedLP() {
   const { staking, ido, owner } = await getData();
-  const aa = await ido.StakingToken();
-  const bb = await ido.RewardsToken();
-  console.log("pairFor: ", await ido.pairFor(aa, bb));
+  console.log("receivedLP: ", await ido.ReceivedLP())
 }
 
+//最少认购金额
+async function minimumStaking() {
+  const { staking, ido, owner } = await getData();
+  console.log("minimumStaking: ", await ido.MinimumStaking())
+}
 
 // 当前时间戳的占比
 async function rateOf() {
@@ -130,7 +150,12 @@ async function totalSupply() {
 
 
 
-
+async function pairFor() {
+  const { staking, ido, owner } = await getData();
+  const aa = await ido.StakingToken();
+  const bb = await ido.RewardsToken();
+  console.log("pairFor: ", await ido.pairFor(aa, bb));
+}
 
 
 let connected = {
