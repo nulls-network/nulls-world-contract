@@ -3,14 +3,16 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./swap/interface/IUniswapV2Factory.sol";
 import "./swap/interface/IUniswapV2Pair.sol";
 import "./swap/SwapRouter.sol";
 
-contract IdoCore is Ownable, SwapRouter {
+contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
     using Math for uint256;
     //100 day
-    uint256 public constant REWARDS_FINISH = 8640000;
+    uint256 public constant REWARDS_FINISH = 100 days;
+    uint256 public MinimumStaking = 0;
 
     mapping(address => uint256) public BalanceOf;
 
@@ -20,6 +22,8 @@ contract IdoCore is Ownable, SwapRouter {
     uint256 public PeriodFinish;
     uint256 public Destroy;
     uint256 public TotalLP;
+
+    uint256 public ReceivedLP;
 
     mapping(address => uint256) ReceivedLast;
 
@@ -32,12 +36,12 @@ contract IdoCore is Ownable, SwapRouter {
     );
 
     modifier OnStake() {
-        // require(block.timestamp < Deadline, "Cannot be performed stake");
+        require(block.timestamp < PeriodFinish, "Cannot be performed stake");
         _;
     }
 
     modifier OnReward() {
-        // require(block.timestamp > Deadline, "Cannot be performed reward");
+        require(block.timestamp > PeriodFinish, "Cannot be performed reward");
         _;
     }
 
@@ -49,11 +53,16 @@ contract IdoCore is Ownable, SwapRouter {
     ) SwapRouter(_factory) {
         StakingToken = _stakingToken;
         RewardsToken = _rewardsToken;
-        PeriodFinish = _periodFinish;
+        PeriodFinish = _periodFinish > block.timestamp ? _periodFinish : 0;
+    }
+
+    function setData(uint256 minimum) external onlyOwner {
+        MinimumStaking = minimum;
     }
 
     function setPeriodFinish(uint256 periodFinish) external onlyOwner {
-        if (periodFinish == 0) {
+        require(periodFinish > 0, "Cannot be zero");
+        if (PeriodFinish == 0) {
             PeriodFinish = periodFinish;
         } else {
             require(
@@ -64,7 +73,8 @@ contract IdoCore is Ownable, SwapRouter {
         }
     }
 
-    function stake(uint256 amount) external OnStake {
+    function stake(uint256 amount) external nonReentrant OnStake {
+        require(amount > MinimumStaking, "amount to low");
         require(
             IERC20(StakingToken).transferFrom(
                 msg.sender,
@@ -97,12 +107,12 @@ contract IdoCore is Ownable, SwapRouter {
         TotalLP += liquidity;
     }
 
-    function getReward() external OnReward {
+    function getReward() external nonReentrant OnReward {
         uint256 time = rewardTime(msg.sender);
         uint256 rate = rateOf(msg.sender);
         uint256 liquidity = rate * TotalLP;
         require(liquidity >= 0x989680, "Insufficient liquidity");
-        liquidity /=  0x989680;
+        liquidity /= 0x989680;
         (uint256 amount0, uint256 amount1) = _safeRemoveLiquidity(
             StakingToken,
             RewardsToken,
@@ -111,6 +121,7 @@ contract IdoCore is Ownable, SwapRouter {
             1,
             block.timestamp
         );
+        ReceivedLP += liquidity;
         (address tokenA, ) = sortTokens(StakingToken, RewardsToken);
         (uint256 amountStaking, uint256 amountRewards) = tokenA == StakingToken
             ? (amount0, amount1)
@@ -123,11 +134,12 @@ contract IdoCore is Ownable, SwapRouter {
         }
         IERC20(StakingToken).transfer(msg.sender, amountStaking);
 
-        if (amountStaking < amountAccount ) {
-          uint256 destroyAmount = Destroy * time;
-          if(amountRewards > destroyAmount){
-            uint give=(amountRewards - destroyAmount) * rate / 0x989680;
-            IERC20(RewardsToken).transfer(msg.sender, give);
+        if (amountStaking < amountAccount) {
+            uint256 destroyAmount = Destroy * time;
+            if (amountRewards > destroyAmount) {
+                uint256 give = ((amountRewards - destroyAmount) * rate) /
+                    0x989680;
+                IERC20(RewardsToken).transfer(msg.sender, give);
             }
         }
         ReceivedLast[msg.sender] += time;
