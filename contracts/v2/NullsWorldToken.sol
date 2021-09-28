@@ -87,7 +87,7 @@ contract NullsWorldToken is INullsWorldToken, ERC20 {
 
     function receiveToken(uint dayIndex ) external updateDayIndex {
         address player = msg.sender ;
-        require( dayIndex == _getDayIndex() , "NullsWorldToken/Must be receive by next day." ) ;
+        require( dayIndex < _getDayIndex() , "NullsWorldToken/Must be receive by next day." ) ;
         Rank storage rank = Ranks[dayIndex][player] ;
         require( rank.score > 0 , "NullsWorldToken/No score to use." ) ;
         require( rank.score > rank.used , "NullsWorldToken/No score to use." ) ;
