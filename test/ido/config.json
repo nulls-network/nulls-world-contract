@@ -1,5 +1,7 @@
 {
-    "address": "0x2f97bB3AE87c05978F1587A5eF1be37a1C8714ec",
+    "address": "0x9B579392ca431A0593DdBB9B48a626Fba85524D9",
     "contractName": "IdoCore",
-    "erc20Name": "IdoToken"
+    "erc20Name": "IdoToken",
+    "stakingAddress": "0x56BCf681fD7FB310a83fa8c1fC70252Ff14fC88A",
+    "rewardsAddress": "0x4e4889761C12E0518B83C871F4fE6A13caF9eF29"
 }

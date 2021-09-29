@@ -103,7 +103,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
             1,
             block.timestamp
         );
-        Destroy += rewards / REWARDS_FINISH;
+        Destroy += (rewards * 1e18) / REWARDS_FINISH;
         TotalLP += liquidity;
     }
 
@@ -113,7 +113,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
         uint256 liquidity = rate * TotalLP;
         require(liquidity >= 0x989680, "Insufficient liquidity");
         liquidity /= 0x989680;
-        (uint256 amount0, uint256 amount1) = _safeRemoveLiquidity(
+        (uint256 amountStaking, uint256 amountRewards) = _safeRemoveLiquidity(
             StakingToken,
             RewardsToken,
             liquidity,
@@ -122,20 +122,11 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
             block.timestamp
         );
         ReceivedLP += liquidity;
-        (address tokenA, ) = sortTokens(StakingToken, RewardsToken);
-        (uint256 amountStaking, uint256 amountRewards) = tokenA == StakingToken
-            ? (amount0, amount1)
-            : (amount1, amount0);
         uint256 amountAccount = (rate * BalanceOf[msg.sender]) / 0x989680;
-        uint256 stakingBalance = IERC20(StakingToken).balanceOf(address(this));
-
-        if (amountStaking > stakingBalance) {
-            amountStaking = stakingBalance;
-        }
         IERC20(StakingToken).transfer(msg.sender, amountStaking);
 
         if (amountStaking < amountAccount) {
-            uint256 destroyAmount = Destroy * time;
+            uint256 destroyAmount = (Destroy * time) / 1e18;
             if (amountRewards > destroyAmount) {
                 uint256 give = ((amountRewards - destroyAmount) * rate) /
                     0x989680;

@@ -1,18 +1,19 @@
 const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
-const { address, contractName, erc20Name } = require("./config.json");
+const { address, contractName, erc20Name, stakingAddress, rewardsAddress } = require("./config.json");
 
 const approveAmount = BigNumber.from(10).pow(25);
-///npx hardhat run test/ido/ido-test.js 
+///npx hardhat run test/ido/test-ido.js 
 
 const past = 1622394922;
 
 async function getData() {
   const [owner] = await hre.ethers.getSigners();
   const ido = await connectContract(contractName, address);
-  const stakingAddress = await ido.StakingToken();
   const staking = await connectContract(erc20Name, stakingAddress);
+  const rewards = await connectContract(erc20Name, rewardsAddress);
   data = {
+    rewards: rewards,
     staking: staking,
     ido: ido,
     owner: owner,
@@ -20,23 +21,48 @@ async function getData() {
   return data;
 
 }
+
+async function approve(address, to) {
+  const [owner] = await hre.ethers.getSigners();
+  erc20 = await connectContract(erc20Name, address);
+  const allowance = await erc20.allowance(owner.address, to);
+  console.log("allowance: ", allowance)
+  if (allowance.isZero()) {
+    await (await erc20.approve(to, approveAmount)).wait();
+  }
+}
+
+async function getDecimals(address) {
+  const [owner] = await hre.ethers.getSigners();
+  erc20 = await connectContract(erc20Name, address);
+  const decimals = await erc20.decimals();
+  console.log("decimals: ", decimals)
+  return decimals;
+}
+
 async function main() {
 
   // ----------------- 操作
   // 抵押
   await stake();
 
-  //设置参数 （minimum：最低认购金额）
-  await setData();
+  // 设置参数 （minimum：最低认购金额）
+  // await setData();
 
-  //设置时间
+  // 设置时间
   // await setPeriodFinish();
 
-  // // 添加流动性
+  //   添加流动性
   // await addLiquidity();
 
-  // // 领取奖励
+  // 领取奖励
   // await getReward();
+
+  // staking兑换rewards
+  // await swapStaking();
+
+  // rewards兑换staking
+  // await swapRewards();
 
   // ------------------- 查询
 
@@ -57,14 +83,11 @@ async function main() {
 
 }
 // -----------操作
-async function stake() {
+async function stake(amount = 20000) {
   const { staking, ido, owner } = await getData();
-  const allowance = await staking.allowance(owner.address, ido.address);
-  console.log("allowance: ", allowance)
-  if (allowance.isZero()) {
-    await (await staking.approve(ido.address, approveAmount)).wait();
-  }
-  const stakingAmount = BigNumber.from(10).pow(6).mul(20000);
+  await approve(staking.address, ido.address);
+  const decimals = await getDecimals(staking.address);
+  const stakingAmount = BigNumber.from(10).pow(decimals).mul(amount);
   const stakeTx = await (await ido.stake(stakingAmount)).wait();
   console.log("stake: ", stakeTx.transactionHash);
 }
@@ -79,10 +102,12 @@ async function setPeriodFinish(time = past) {
 }
 
 //设置参数 （minimum：最低认购金额） （管理员）
-async function setData(minimum = 1000000) {
+async function setData(minimum = 100) {
   const { staking, ido, owner } = await getData();
 
-  const tx = await (await ido.setData(minimum)).wait();
+  const decimals =await getDecimals(staking.address);
+  const amount = BigNumber.from(10).pow(decimals).mul(minimum);
+  const tx = await (await ido.setData(amount)).wait();
   console.log("setData: ", tx.transactionHash);
 }
 
@@ -106,6 +131,27 @@ async function getReward() {
   console.log("balance:", balnace)
   const tx = await (await ido.getReward()).wait();
   console.log("getReward: ", tx.transactionHash);
+}
+
+async function swapStaking(amountIn = 1000) {
+  const { rewards, staking, ido, owner } = await getData();
+  await swapExactTokensForTokens(amountIn, staking.address);
+}
+
+async function swapRewards(amountIn = 1000) {
+  const { rewards, staking, ido, owner } = await getData();
+  await swapExactTokensForTokens(amountIn, rewards.address);
+}
+
+
+//swap
+async function swapExactTokensForTokens(amountIn, token) {
+  const { rewards, staking, ido, owner } = await getData();
+  await approve(token, ido.address);
+  const decimals =await getDecimals(token);
+  const amount = BigNumber.from(10).pow(decimals).mul(amountIn);
+  const path = token == staking.address ? [staking.address, rewards.address] : [rewards.address, staking.address];
+  await (await ido.swapExactTokensForTokens(amount, 1, path, owner.address, 1695954712)).wait();
 }
 
 
