@@ -31,7 +31,7 @@ async function main() {
     console.log(`ido address>> ${ido.address}`);
 
     await nwt.mint(ido.address, BigNumber.from(10).pow(6).mul(nwtAmount));
-    upAddress(ido.address);
+    upAddress(ido.address, stakingToken.address, nwt.address);
 }
 
 async function deployErc20(name, symbol) {
@@ -53,9 +53,11 @@ function writeJosnToConfigFile(data) {
     console.log("写入配置文件")
     fs.writeFileSync(filePath, JSON.stringify(data, null, 4));
 }
-function upAddress(address) {
+function upAddress(address, stakingToken, rewardsToken) {
     let data = readJsonFromFile()
     data.address = address;
+    data.stakingAddress = stakingToken;
+    data.rewardsAddress = rewardsToken;
     writeJosnToConfigFile(data);
 }
 
