@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract IdoToken is ERC20 {
     address Owner;
     address Oper;
-    uint8 Decimals = 6;
+    uint8 Decimals ;
 
     modifier onlyOwner() {
         require(msg.sender == Owner, "NullsERC20Token/No role.");
@@ -22,11 +22,12 @@ contract IdoToken is ERC20 {
         return Decimals;
     }
 
-    constructor(string memory name_, string memory symbol_)
+    constructor(string memory name_, string memory symbol_, uint8 decimals_)
         ERC20(name_, symbol_)
     {
         Owner = msg.sender;
         Oper = msg.sender;
+        Decimals = decimals_;
     }
 
     function modifierOwner(address owner) external onlyOwner {
@@ -43,5 +44,8 @@ contract IdoToken is ERC20 {
 
     function burn(address player, uint256 total) external onlyOper {
         _burn(player, total);
+    }
+    function test()external view returns (address) {
+        return Oper;
     }
 }

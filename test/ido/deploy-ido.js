@@ -10,13 +10,13 @@ const addressList = [
 const nwtAmount = 210000;
 
 
-//npx hardhat run test/ido/deploy-ido.js
+//npx hardhat clean && npx hardhat run test/ido/deploy-ido.js
 async function main() {
     const [owner] = await hre.ethers.getSigners();
     console.log("deploy start")
-    const stakingToken = await deployErc20("USDC", "USDC");
+    const stakingToken = await deployErc20("USDC", "USDC", 6);
 
-    const nwt = await deployErc20("NWT", "NWT");
+    const nwt = await deployErc20("NWT", "NWT", 6);
 
     const factory = "0xe544026845d1ee29cf74fe706cc9661be7fd9510";
     const IDO = await hre.ethers.getContractFactory("IdoCore");
@@ -31,23 +31,20 @@ async function main() {
 
     await nwt.mint(ido.address, BigNumber.from(10).pow(6).mul(nwtAmount));
     upAddress(ido.address, stakingToken.address, nwt.address);
-
-    await hre.run("verify:verify", {
-        address: ido.address,
-        constructorArguments: [
-            stakingToken.address,
-            nwt.address,
-            factory,
-            1640970061,
-        ],
-    });
+    await verify(ido.address, [
+        stakingToken.address,
+        nwt.address,
+        factory,
+        1640970061,
+    ]);
 }
 
-async function deployErc20(name, symbol) {
+async function deployErc20(name, symbol, decimals) {
     const ERC20 = await hre.ethers.getContractFactory("IdoToken");
-    const erc20 = await ERC20.deploy(name, symbol);
+    const erc20 = await ERC20.deploy(name, symbol, decimals);
     await erc20.deployed();
     console.log(`erc20 address>> ${erc20.address}`);
+    verify(erc20.address, [name, symbol, decimals]);
     return erc20;
 
 }
@@ -68,6 +65,13 @@ function upAddress(address, stakingToken, rewardsToken) {
     data.stakingAddress = stakingToken;
     data.rewardsAddress = rewardsToken;
     writeJosnToConfigFile(data);
+}
+
+async function verify(address, constructor) {
+    await hre.run("verify:verify", {
+        address: address,
+        constructorArguments: constructor,
+    });
 }
 
 
