@@ -10,10 +10,9 @@ const addressList = [
 const nwtAmount = 210000;
 
 
-//npx hardhat run scripts/deploy-ido.js
+//npx hardhat run test/ido/deploy-ido.js
 async function main() {
     const [owner] = await hre.ethers.getSigners();
-    console.log(owner.address)
     console.log("deploy start")
     const stakingToken = await deployErc20("USDC", "USDC");
 

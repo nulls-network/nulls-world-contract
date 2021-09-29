@@ -3,7 +3,7 @@ const hre = require("hardhat")
 const { address, contractName, erc20Name, stakingAddress, rewardsAddress } = require("./config.json");
 
 const approveAmount = BigNumber.from(10).pow(25);
-///npx hardhat run test/ido/ido-test.js 
+///npx hardhat run test/ido/test-ido.js 
 
 const past = 1622394922;
 
@@ -55,7 +55,7 @@ async function main() {
   //   添加流动性
   // await addLiquidity();
 
-  // // 领取奖励
+  // 领取奖励
   // await getReward();
 
   // staking兑换rewards
@@ -85,7 +85,7 @@ async function main() {
 // -----------操作
 async function stake(amount = 20000) {
   const { staking, ido, owner } = await getData();
-  approve(staking.address, ido.address);
+  await approve(staking.address, ido.address);
   const decimals = await getDecimals(staking.address);
   const stakingAmount = BigNumber.from(10).pow(decimals).mul(amount);
   const stakeTx = await (await ido.stake(stakingAmount)).wait();
