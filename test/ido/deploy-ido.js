@@ -31,6 +31,16 @@ async function main() {
 
     await nwt.mint(ido.address, BigNumber.from(10).pow(6).mul(nwtAmount));
     upAddress(ido.address, stakingToken.address, nwt.address);
+
+    await hre.run("verify:verify", {
+        address: ido.address,
+        constructorArguments: [
+            stakingToken.address,
+            nwt.address,
+            factory,
+            1640970061,
+        ],
+    });
 }
 
 async function deployErc20(name, symbol) {
