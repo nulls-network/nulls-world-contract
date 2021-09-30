@@ -2,43 +2,8 @@ const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
 const { address, contractName, erc20Name, stakingAddress, rewardsAddress } = require("./config.json");
 
-const approveAmount = BigNumber.from(10).pow(25);
-///npx hardhat run test/ido/test-ido.js 
 
-const past = 1622394922;
-
-async function getData() {
-  const [owner] = await hre.ethers.getSigners();
-  const ido = await connectContract(contractName, address);
-  const staking = await connectContract(erc20Name, stakingAddress);
-  const rewards = await connectContract(erc20Name, rewardsAddress);
-  data = {
-    rewards: rewards,
-    staking: staking,
-    ido: ido,
-    owner: owner,
-  }
-  return data;
-
-}
-
-async function approve(address, to) {
-  const [owner] = await hre.ethers.getSigners();
-  erc20 = await connectContract(erc20Name, address);
-  const allowance = await erc20.allowance(owner.address, to);
-  console.log("allowance: ", allowance)
-  if (allowance.isZero()) {
-    await (await erc20.approve(to, approveAmount)).wait();
-  }
-}
-
-async function getDecimals(address) {
-  const [owner] = await hre.ethers.getSigners();
-  erc20 = await connectContract(erc20Name, address);
-  const decimals = await erc20.decimals();
-  console.log("decimals: ", decimals)
-  return decimals;
-}
+// npx hardhat run test/ido/test-ido.js 
 
 async function main() {
 
@@ -94,7 +59,7 @@ async function stake(amount = 20000) {
 
 
 //修改时间 （管理员）
-async function setPeriodFinish(time = past) {
+async function setPeriodFinish(time = 1622394922) {
   const { staking, ido, owner } = await getData();
 
   const tx = await (await ido.setPeriodFinish(time)).wait();
@@ -105,7 +70,7 @@ async function setPeriodFinish(time = past) {
 async function setData(minimum = 100) {
   const { staking, ido, owner } = await getData();
 
-  const decimals =await getDecimals(staking.address);
+  const decimals = await getDecimals(staking.address);
   const amount = BigNumber.from(10).pow(decimals).mul(minimum);
   const tx = await (await ido.setData(amount)).wait();
   console.log("setData: ", tx.transactionHash);
@@ -148,7 +113,7 @@ async function swapRewards(amountIn = 1000) {
 async function swapExactTokensForTokens(amountIn, token) {
   const { rewards, staking, ido, owner } = await getData();
   await approve(token, ido.address);
-  const decimals =await getDecimals(token);
+  const decimals = await getDecimals(token);
   const amount = BigNumber.from(10).pow(decimals).mul(amountIn);
   const path = token == staking.address ? [staking.address, rewards.address] : [rewards.address, staking.address];
   await (await ido.swapExactTokensForTokens(amount, 1, path, owner.address, 1695954712)).wait();
@@ -201,6 +166,40 @@ async function pairFor() {
   const aa = await ido.StakingToken();
   const bb = await ido.RewardsToken();
   console.log("pairFor: ", await ido.pairFor(aa, bb));
+}
+
+async function getData() {
+  const [owner] = await hre.ethers.getSigners();
+  const ido = await connectContract(contractName, address);
+  const staking = await connectContract(erc20Name, stakingAddress);
+  const rewards = await connectContract(erc20Name, rewardsAddress);
+  data = {
+    rewards: rewards,
+    staking: staking,
+    ido: ido,
+    owner: owner,
+  }
+  return data;
+
+}
+
+async function approve(address, to) {
+  const approveAmount = BigNumber.from(10).pow(25);
+  const [owner] = await hre.ethers.getSigners();
+  erc20 = await connectContract(erc20Name, address);
+  const allowance = await erc20.allowance(owner.address, to);
+  console.log("allowance: ", allowance)
+  if (allowance.isZero()) {
+    await (await erc20.approve(to, approveAmount)).wait();
+  }
+}
+
+async function getDecimals(address) {
+  const [owner] = await hre.ethers.getSigners();
+  erc20 = await connectContract(erc20Name, address);
+  const decimals = await erc20.decimals();
+  console.log("decimals: ", decimals)
+  return decimals;
 }
 
 

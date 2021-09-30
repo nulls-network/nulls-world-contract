@@ -21,12 +21,12 @@ contract StakingCore is Ownable, ReentrancyGuard {
     }
 
     struct Rewards {
-        uint256 prizePool;
+        uint256 amount;
         uint256 totalStaking;
         uint256 timestamp;
     }
 
-    address public PrizePoolAddress;
+    address public PrizePool;
     address public StakingToken;
 
     uint256 StartTime;
@@ -37,11 +37,21 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     mapping(address => Account) public Voucher;
 
-    mapping(uint256 => mapping(uint256 => Account)) DayVoucher;
+     mapping(uint256 => Account) DayVoucher;
 
     mapping(uint16 => uint256) Coefficient;
 
     Rewards[] DayRewards;
+
+    constructor(
+        uint256 _startTime,
+        address _stakingToken,
+        address _prizePool
+    ) {
+        StartTime = _startTime;
+        StakingToken = _stakingToken;
+        PrizePool = _prizePool;
+    }
 
     modifier onStart() {
         require(block.timestamp > StartTime, "");
@@ -58,6 +68,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
     }
 
     function stake(uint256 amount, uint16 day) external nonReentrant {
+        require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
         uint256 coefficient = getCoefficient(day);
         // n+1
         uint256 start = DayRewards.length + 1;
@@ -82,7 +93,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
                 end: start + day
             });
             uint256 id = _useId();
-            DayVoucher[day][id] = account;
+            DayVoucher[id] = account;
         }
 
         TotalSupply += coefficient;
@@ -96,10 +107,10 @@ contract StakingCore is Ownable, ReentrancyGuard {
         uint256 day = (block.timestamp - time) / 1 days;
         if (day > 0) {
             //todo prizePoolAddress
-            uint256 prizePool = 111;
+            uint256 amount = 111;
             for (uint256 index = 0; index < day; index++) {
                 Rewards memory rewards = Rewards({
-                    prizePool: prizePool,
+                    amount: amount,
                     totalStaking: TotalSupply,
                     timestamp: time + 1 days
                 });
@@ -108,15 +119,15 @@ contract StakingCore is Ownable, ReentrancyGuard {
         }
     }
 
-    function getDayRewards(uint16 day, uint256 key) external {
-        Account memory account = DayVoucher[day][key];
+    function getDayRewards(uint256 key) external {
+        Account memory account = DayVoucher[key];
         uint256 start = _reward(account);
         account.start = start;
         if (start == account.end) {
             TotalSupply -= account.total;
             BalanceOf[msg.sender] -= account.total;
         }
-        DayVoucher[day][key] = account;
+        DayVoucher[key] = account;
     }
 
     function getReward() external nonReentrant {
@@ -131,7 +142,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
         Account memory account = Voucher[msg.sender];
         uint256 start = _reward(account);
         account.start = start;
-        if (start == DayRewards.length) {
+        if (start == account.end) {
             IERC20(StakingToken).transfer(msg.sender, account.amount);
             account.amount = 0;
         }
@@ -140,15 +151,17 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     function _reward(Account memory account) internal returns (uint256) {
         require(account.account == msg.sender, "");
-        uint256 len = Math.min(DayRewards.length, account.end);
-        len = Math.min(len, account.start + 30);
+        uint256 len = account.end == 0
+            ? DayRewards.length
+            : Math.min(DayRewards.length, account.end);
+        len = Math.min(len, account.start + 20);
         uint256 start = account.start;
         uint256 amount = 0;
-        for (; account.start < len; start++) {
+        for (; start < len; start++) {
             Rewards memory rewards = DayRewards[start];
             unchecked {
                 amount +=
-                    (account.total * rewards.prizePool) /
+                    (account.total * rewards.amount) /
                     rewards.totalStaking;
             }
         }
