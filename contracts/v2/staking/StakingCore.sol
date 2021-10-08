@@ -29,7 +29,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
     address public PrizePool;
     address public StakingToken;
 
-    uint256 StartTime;
+    uint256 public StartTime;
 
     uint256 public TotalSupply;
 
@@ -37,11 +37,14 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     mapping(address => Account) public Voucher;
 
-     mapping(uint256 => Account) DayVoucher;
+    mapping(uint256 => Account) DayVoucher;
 
     mapping(uint16 => uint256) Coefficient;
 
     Rewards[] DayRewards;
+
+    event Stake(address indexed sender,uint256 amount);
+    event StakeDay(address indexed sender,uint256 amount,uint256 id);
 
     constructor(
         uint256 _startTime,
@@ -67,38 +70,45 @@ contract StakingCore is Ownable, ReentrancyGuard {
         return Coefficient[time];
     }
 
-    function stake(uint256 amount, uint16 day) external nonReentrant {
+    function test() public view  returns (uint256){
+        return DayRewards.length;
+    }
+
+    function stakeDay(uint256 amount, uint16 day)  external nonReentrant{
         require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
         uint256 coefficient = getCoefficient(day);
+        require(coefficient > 0, "");
+        uint256 start = DayRewards.length + 1;
+        coefficient = (amount * coefficient) / 1000;
+        Account memory account = Account({
+            account: msg.sender,
+            amount: amount,
+            total: coefficient,
+            start: start,
+            end: start + day
+        });
+        uint256 id = _useId();
+        DayVoucher[id] = account;
+        TotalSupply += coefficient;
+        BalanceOf[msg.sender] += coefficient;
+        emit StakeDay(msg.sender, amount, id);
+    }
+
+    function stake(uint256 amount) external nonReentrant {
+        require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
         // n+1
         uint256 start = DayRewards.length + 1;
-
-        if (coefficient == 0) {
-            coefficient = amount;
-            Account memory account = Voucher[msg.sender];
-            account.amount += amount;
-            account.total += amount;
-            if (account.amount == 0) {
-                account.account = msg.sender;
-                account.start = start;
-            }
-            Voucher[msg.sender] = account;
-        } else {
-            coefficient = (amount * coefficient) / 1000;
-            Account memory account = Account({
-                account: msg.sender,
-                amount: amount,
-                total: coefficient,
-                start: start,
-                end: start + day
-            });
-            uint256 id = _useId();
-            DayVoucher[id] = account;
+        Account memory account = Voucher[msg.sender];
+        account.amount += amount;
+        account.total += amount;
+        if (account.amount == 0) {
+            account.account = msg.sender;
+            account.start = start;
         }
-
-        TotalSupply += coefficient;
-        // Voucher[]
-        BalanceOf[msg.sender] += coefficient;
+        Voucher[msg.sender] = account;
+        TotalSupply += amount;
+        BalanceOf[msg.sender] += amount;
+        emit Stake(msg.sender, amount);
     }
 
     function notifyRewards() external onlyOwner {
@@ -138,14 +148,15 @@ contract StakingCore is Ownable, ReentrancyGuard {
         Voucher[msg.sender] = account;
     }
 
-    function withdraw() external nonReentrant {
+    function withdraw(uint256 amount) external nonReentrant {
         Account memory account = Voucher[msg.sender];
-        uint256 start = _reward(account);
-        account.start = start;
-        if (start == account.end) {
+        account.start = _reward(account);
+        if (account.start == DayRewards.length) {
             IERC20(StakingToken).transfer(msg.sender, account.amount);
-            account.amount = 0;
+            account.amount -= amount;
         }
+        TotalSupply -= amount;
+        BalanceOf[msg.sender] -= amount;
         Voucher[msg.sender] = account;
     }
 
@@ -172,4 +183,5 @@ contract StakingCore is Ownable, ReentrancyGuard {
         );
         return start;
     }
+
 }
