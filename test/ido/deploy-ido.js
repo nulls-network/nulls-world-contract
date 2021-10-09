@@ -3,10 +3,12 @@ const hre = require("hardhat")
 const fs = require("fs");
 const { erc20Name, contractName } = require("./config.json");
 
-//npx hardhat clean && npx hardhat run test/ido/deploy-ido.js
+//  npx hardhat clean && npx hardhat run test/ido/deploy-ido.js
 
 const addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
+    "0x8C47494c675333dc613547600432d53ae78b272f",
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 ]
 //ntw奖励金额
 const nwtAmount = 210000;
@@ -14,9 +16,9 @@ const nwtAmount = 210000;
 async function main() {
     const [owner] = await hre.ethers.getSigners();
     console.log("deploy start")
-    const stakingToken = await deployErc20("USDC", "USDC", 6);
+    const stakingToken = await deployErc20(["USDC", "USDC", 6]);
 
-    const nwt = await deployErc20("NWT", "NWT", 6);
+    const nwt = await deployErc20(["NWT", "NWT", 6]);
 
     const factory = "0xe544026845d1ee29cf74fe706cc9661be7fd9510";
     const IDO = await hre.ethers.getContractFactory(contractName);
@@ -39,12 +41,12 @@ async function main() {
     ]);
 }
 
-async function deployErc20(name, symbol, decimals) {
+async function deployErc20(constructor) {
     const ERC20 = await hre.ethers.getContractFactory(erc20Name);
-    const erc20 = await ERC20.deploy(name, symbol, decimals);
+    const erc20 = await ERC20.deploy(...constructor);
     await erc20.deployed();
     console.log(`erc20 address>> ${erc20.address}`);
-    verify(erc20.address, [name, symbol, decimals]);
+    verify(erc20.address, constructor);
     return erc20;
 
 }
@@ -68,10 +70,10 @@ function upAddress(address, stakingToken, rewardsToken) {
 }
 
 async function verify(address, constructor) {
-    await hre.run("verify:verify", {
-        address: address,
-        constructorArguments: constructor,
-    });
+    // await hre.run("verify:verify", {
+    //     address: address,
+    //     constructorArguments: constructor,
+    // });
 }
 
 

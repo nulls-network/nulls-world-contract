@@ -4,7 +4,6 @@ const fs = require("fs");
 const { erc20Name, contractName } = require("./config.json");
 
 // npx hardhat clean && npx hardhat run test/staking/deploy-staking.js
-
 const addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
 ]
@@ -12,13 +11,13 @@ const startTime = 1630425600; //2021-9-1
 async function main() {
     const [owner] = await hre.ethers.getSigners();
     console.log("deploy start");
-    const stakingToken = await deployErc20(["USDC", "USDC", 6]);
+    // const stakingToken = await deployErc20(["USDC", "USDC", 6]);
     const StakingCore = await hre.ethers.getContractFactory(contractName);
-    const constructor = [startTime, stakingToken.address, stakingToken.address];
+    const constructor = [startTime, "0xdC80db2c7fF47F790f29692f538b0cDAf0dA853B", "0xdC80db2c7fF47F790f29692f538b0cDAf0dA853B"];
     const staking = await StakingCore.deploy(...constructor);
     await staking.deployed();
     console.log("staking address>>", staking.address);
-    update(staking.address, stakingToken.address);
+    // update(staking.address, stakingToken.address);
     await verify(staking.address, constructor)
 }
 
@@ -32,7 +31,7 @@ async function deployErc20(constructor) {
     for (const key of addressList) {
        await( await erc20.mint(key, BigNumber.from(10).pow(25))).wait();
     }
-    verify(erc20.address, constructor);
+    // verify(erc20.address, constructor);
     return erc20;
 
 }
@@ -56,10 +55,10 @@ function update(address, stakingToken) {
 }
 
 async function verify(address, constructor) {
-    await hre.run("verify:verify", {
-        address: address,
-        constructorArguments: constructor,
-    });
+    // await hre.run("verify:verify", {
+    //     address: address,
+    //     constructorArguments: constructor,
+    // });
 }
 
 
