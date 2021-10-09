@@ -9,3 +9,4 @@ node_modules
 cache
 artifacts
 package-lock.json
+.DS_Store
