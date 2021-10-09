@@ -1,13 +1,15 @@
 const hre = require("hardhat")
+const fs = require("fs");
 
 // 奖励领取测试脚本
 // npx hardhat run test/promotion/receive.js --network ht-testnet-user1
 
 const contractName = "NullsPromotion";
-const contractAddr = "0x819Cbfe21b12f8f2c0C16C6A144Dbe4Afb94ED92";
+let contractAddr = "";
 
 async function main() {
 
+  await readConfig()
   contract = await connectContract(contractName, contractAddr)
   const [owner] = await hre.ethers.getSigners();
   const value = await contract.UserRewards(owner.address)
@@ -43,7 +45,12 @@ async function connectContract(contractName, contractAddress) {
   return contract;
 }
 
-
+async function readConfig() {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  contractAddr = rwaJsonData['contrat_address']['NullsPromotion'];
+}
 
 
 main()

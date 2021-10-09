@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface INullsWorldCore {
-    function newItem(uint256 sceneId, address pubkey)
+    function newItem(uint256 sceneId, address pubkey, uint8 model)
         external
         returns (uint256 itemId);
 

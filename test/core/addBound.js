@@ -2,26 +2,24 @@ const hre = require("hardhat")
 const fs = require("fs");
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
-// npx hardhat run test/market/unSellPet.js --network ht-testnet-user1
+// npx hardhat run test/core/addBound.js --network ht-testnet
 
-const contractName = "NullsPetToken";
-let contractAddr = "";
+let coreContractAddr = "";
+const coreContractName = "NullsWorldCore";
 
-const petId = 1;
 async function main() {
-
   await readConfig()
-  rankContract = await connectContract(contractName, contractAddr)
-  
-  ret = await rankContract.unSellPet(petId)
-  await ret.wait()
+  coreContract = await connectContract(coreContractName, coreContractAddr)
+
+  res = await coreContract.addBound(1)
+  await res.wait()
 }
 
 async function readConfig() {
   const configFile = "./scripts/config.json"
   let rawdata = fs.readFileSync(configFile)
   rwaJsonData = JSON.parse(rawdata)
-  contractAddr = rwaJsonData['contrat_address']['petToken_address'];
+  coreContractAddr = rwaJsonData['contrat_address']['worldCore_address'];
 }
 
 async function connectContract(contractName, contractAddress) {

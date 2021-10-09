@@ -1,25 +1,33 @@
+const fs = require("fs");
 const hre = require("hardhat")
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
-// npx hardhat run test/egg/buy.js --network ht-testnet
+// npx hardhat run test/egg/play.js --network ht-testnet
 
 
-const coreContractAddr = "0xC5cd21aeFb28e2AA289e16da7e2E6e1399b2284d";
+let coreContractAddr = "";
 const coreContractName = "NullsWorldCore";
 
 async function main() {
 
-  
+  await readConfig()
   coreContract = await connectContract(coreContractName, coreContractAddr)
 
   await coreContract.play(
-    "0xccd88719cc377f0a5ec5f596857fbd01606069c741451127968612773c6e6016",
-    1632468820,
+    "0xc8dc2fe784aed59c9f7f365516b5e9cb0beb4b38111b23b2f8028e127c14c5be",
+    1633688989,
     27,
-    "0xad1a2cd8ccf44787264308d42d57489915ce0371dd0a12754f179a7573c500fe",
-    "0x5b52915df54cfa1bd354bb1a6e0b3b15ffa8ac42a80e82d264e4307f0dfba9f5"
+    "0x58165c6e0f80d7f6d1d8b3f6eecc8c447c0e60c7fffb17658b7a30740e70d134",
+    "0x601625dd43313bcbef14495391a1739852e17c87bbab9717ce2e31637dbb9937"
   )
 
+}
+
+async function readConfig() {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  coreContractAddr = rwaJsonData['contrat_address']['worldCore_address'];
 }
 
 async function connectContract(contractName, contractAddress) {

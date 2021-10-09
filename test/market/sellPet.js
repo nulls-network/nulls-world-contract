@@ -1,19 +1,20 @@
 const hre = require("hardhat")
+const fs = require("fs");
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
 // npx hardhat run test/market/sellPet.js --network ht-testnet-user1
 
 const contractName = "NullsPetToken";
-const contractAddr = "0x416914b24eDb3A4dd6Ab62d034fd7827fB233024";
+let contractAddr = "";
 
-const transferProxy = "0x3Cc1Ad4766c8b4D8a21B233Bae4Ef55c30139Ebd";
+let transferProxy = "";
 
-const c20TokenAddr = "0x6aA7CF4F83c6a88cABD93b40D47E7144311882B8";
-const c20TokenContractName = "NullsERC20Token";
+let c20TokenAddr = "";
 const sellFee = 100;
-const petId = 200;
+const petId = 1;
 async function main() {
 
+  await readConfig()
   rankContract = await connectContract(contractName, contractAddr)
   
   // ret = await rankContract.setSupportedToken(c20TokenAddr, true, 30);
@@ -24,6 +25,15 @@ async function main() {
   
   ret = await rankContract.sellPet(petId, c20TokenAddr, sellFee)
   await ret.wait()
+}
+
+async function readConfig() {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  contractAddr = rwaJsonData['contrat_address']['petToken_address'];
+  transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
+  c20TokenAddr = rwaJsonData['contrat_address']['NullsErc20TestToken'];
 }
 
 async function connectContract(contractName, contractAddress) {

@@ -25,6 +25,30 @@ interface IZKRandomCore {
     function newItem(
         uint256 projectId,
         address caller,
-        address pubkey
+        address pubkey,
+        uint8 model
     ) external returns (uint256 itemId);
+
+    function modifyItem(
+        uint256 itemId, 
+        address pubkey
+    ) external;
+
+    function addBond(
+        uint256 projectId, 
+        uint8 timesValue
+    ) external;
+
+    function applyUnBond(
+        uint256 projectId
+    ) external;
+
+    function withdraw(
+        uint256 projectId
+    ) external;
+
+    function publishPrivateKey(
+        uint256 itemId, 
+        bytes memory prikey
+    ) external;
 }

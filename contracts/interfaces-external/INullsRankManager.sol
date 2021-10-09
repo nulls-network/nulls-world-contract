@@ -150,14 +150,9 @@ interface INullsRankManager {
      *
      */
     function createRank(
-        address creator,
         uint petId, 
         address token,
-        uint8 multiple,
-        uint8 v , 
-        bytes32 r , 
-        bytes32 s ,
-        address pubkey 
+        uint8 multiple
     ) external returns(uint256 itemId);
 
     /*

@@ -190,6 +190,10 @@ async function eggManager(core, petT, eggT, testC20, transferProx){
   ret = await eggmanager.setBuyToken(rwaJsonData[prefixKey]["USDT"], eggPrice);
   await ret.wait()
 
+  const [owner] = await hre.ethers.getSigners();
+  ret = await eggmanager.setBigPrizePool(owner.address);
+  await ret.wait()
+
   // eggManager合约重新部署过 或 core合约重新部署过 或 router合约重新部署过，都需要重新注册场景
   if (obj.flag || core.flag || newRouterContractFlag) {
     // 设置代理，并创建场景
@@ -215,8 +219,10 @@ async function petToken(nullsErc20TestToken, transferProx) {
   const contractAddresskey = "petToken_address"
   const contractName = "NullsPetToken"
   obj = await connectOrDeployContract(contractName, contractAddresskey)
-  await obj.contract.setSupportedToken(rwaJsonData[prefixKey]["USDT"], true, petTransferFee)
-  await obj.contract.setSupportedToken(nullsErc20TestToken.contract.address, true, petTransferFee)
+  ret = await obj.contract.setSupportedToken(rwaJsonData[prefixKey]["USDT"], true, petTransferFee)
+  await ret.wait()
+  ret = await obj.contract.setSupportedToken(nullsErc20TestToken.contract.address, true, petTransferFee)
+  await ret.wait()
 
   if (obj.flag || transferProx.flag) {
     // 设置代理
