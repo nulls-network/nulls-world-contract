@@ -55,10 +55,42 @@ contract NullsWorldCore is IZKRandomCallback, Ownable {
     //  合约owner、newItemWhiteList可以调用此接口创建item
     function newItem(
         uint256 sceneId,
-        address pubkey
+        address pubkey,
+        uint8 model
     ) external onlyOwnerOrWhiteList returns (uint256 itemId) {
-        itemId = ZKRandomCore.newItem(GameId, address(this), pubkey);
+        itemId = ZKRandomCore.newItem(GameId, address(this), pubkey, model);
         Items[itemId] = sceneId;
+    }
+
+    // 异步设置密钥
+    function addPubkeyAsync(
+        uint256 itemId, 
+        address pubkey
+    ) external onlyOwner {
+        ZKRandomCore.modifyItem(itemId, pubkey);
+    }
+
+    function addBound(
+        uint8 timesValue
+    ) external {
+        ZKRandomCore.addBond(GameId, timesValue);
+    }
+
+    // 调用此方法将取消注册游戏
+    function applyUnBond() external onlyOwner {
+        ZKRandomCore.applyUnBond(GameId);
+    }
+
+    function withdrawInZkRandom() external onlyOwner {
+        ZKRandomCore.withdraw(GameId);
+    }
+
+    function withdraw(address tokenAddr, uint amount) external onlyOwner {
+        IERC20(tokenAddr).transfer(msg.sender, amount);
+    }
+
+    function publishPrivateKey(uint256 itemId, bytes memory prikey) external onlyOwner {
+        ZKRandomCore.publishPrivateKey(itemId, prikey);
     }
 
     function getNonce(uint256 itemId, bytes32 hv) public returns(bytes32 requestKey) {

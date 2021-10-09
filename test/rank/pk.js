@@ -1,30 +1,41 @@
+const fs = require("fs");
 const hre = require("hardhat")
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
 // npx hardhat run test/rank/pk.js --network ht-testnet-user1
 
 const contractName = "NullsRankManager";
-const contractAddr = "0xeE156C0d169eb3B6b3Cde3BBF306c87e3afe65be";
+let contractAddr = "";
 
-const transferProxy = "0x3Cc1Ad4766c8b4D8a21B233Bae4Ef55c30139Ebd";
+let transferProxy = "";
 
-const eggTokenAddr = "0x4D27BABe8dD0D6737675A327D22C97f7B5a24c38";
-const eggTokenContractName = "NullsEggToken";
-const pkFee = 100;
+let nullsERC20Token = "";
+const nullsErc20TokenContractName = "NullsERC20Token";
+const pkFee = 100 * 1000000;
 async function main() {
 
+  await readConfig()
   rankContract = await connectContract(contractName, contractAddr)
-  while(true) {
+  // while(true) {
     // 授权
-    tokenContract = await connectContract(eggTokenContractName, eggTokenAddr)
+    tokenContract = await connectContract(nullsErc20TokenContractName, nullsERC20Token)
     ret = await tokenContract.approve(transferProxy, pkFee)
     await ret.wait()
     
     let time = Math.floor((new Date().getTime() + 3600*1000)/1000)
-    ret = await rankContract.pk(1, 250, time)
+    ret = await rankContract.pk(1, 14, time)
     console.log(ret)
     await ret.wait()
-  }
+  // }
+}
+
+async function readConfig() {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  contractAddr = rwaJsonData['contrat_address']['RingManager_address'];
+  nullsERC20Token = rwaJsonData['contrat_address']['NullsErc20TestToken'];
+  transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
 }
 
 async function connectContract(contractName, contractAddress) {

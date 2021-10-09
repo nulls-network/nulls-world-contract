@@ -1,24 +1,36 @@
 const hre = require("hardhat")
+const fs = require("fs");
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
 // npx hardhat run test/egg/newEggItem.js --network ht-testnet
 
 const contractName = "NullsEggManager";
-const contractAddr = "0xF645Ac66E9cCf4D3c38B79a7Ad240fBb158a7058";
+let contractAddr = "";
 
-const coreContractAddr = "0xb6233730B7Dc3f83e58FA2Cd9Ca973179EDB0C22";
+let coreContractAddr = "";
 const coreContractName = "NullsWorldCore";
 
 async function main() {
-
+  await readConfig()
   eggContract = await connectContract(contractName, contractAddr)
   coreContract = await connectContract(coreContractName, coreContractAddr)
 
   sceneId = await eggContract.getSceneId()
   console.log("sceneId = ", sceneId)
 
-  await coreContract.newItem(sceneId, "0xeDdc51b795220FAB767Ee17c779345AE2177C4EA")
+  res = await coreContract.newItem(sceneId, "0xeDdc51b795220FAB767Ee17c779345AE2177C4EA", 0)
+  // await res.wait()
+  // 用上面的ItemId来异步设置公钥
+  // res = await coreContract.addPubkeyAsync(0, "0xeDdc51b795220FAB767Ee17c779345AE2177C4EA")
+  await res.wait()
+}
 
+async function readConfig() {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  contractAddr = rwaJsonData['contrat_address']['EggManager_address'];
+  coreContractAddr = rwaJsonData['contrat_address']['worldCore_address'];
 }
 
 async function connectContract(contractName, contractAddress) {

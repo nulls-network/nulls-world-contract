@@ -1,14 +1,16 @@
 const hre = require("hardhat")
+const fs = require("fs");
 
 // 邀请测试脚本,使用ht-testnet-user1测试
 // npx hardhat run test/invite/invite.js --network ht-testnet-user1
 
 const contractName = "NullsInvite";
-const contractAddr = "0xAc7Ed1Bfb27ECC2531Cae2E77811Fa1d57335929";
+let contractAddr = "";
 const superior = "0xB1877E668f3827FF8301EfEAe6aB7aB081d75f11";
 
 async function main() {
 
+  await readConfig()
   contract = await connectContract(contractName, contractAddr)
   await contract.invite(superior)
 }
@@ -21,8 +23,12 @@ async function connectContract(contractName, contractAddress) {
   return contract;
 }
 
-
-
+async function readConfig() {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  contractAddr = rwaJsonData['contrat_address']['NullsInvite'];
+}
 
 main()
   .then(() => process.exit(0))

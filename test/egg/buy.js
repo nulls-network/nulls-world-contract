@@ -1,31 +1,41 @@
 const hre = require("hardhat")
+const fs = require("fs");
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
 // npx hardhat run test/egg/buy.js --network ht-testnet-user1
 
 const contractName = "NullsEggManager";
-const contractAddr = "0xF645Ac66E9cCf4D3c38B79a7Ad240fBb158a7058";
+let contractAddr = "";
 
 const buyEggTokenContractName = "NullsERC20Token";
-const buyEggTokenAddr = "0x6aA7CF4F83c6a88cABD93b40D47E7144311882B8";
-const transferProxy = "0x3Cc1Ad4766c8b4D8a21B233Bae4Ef55c30139Ebd";
+let buyEggTokenAddr = "";
+let transferProxy = "";
 
 // 买蛋数量
-const buyCount = 1000; 
+const buyCount = 1; 
 const price = 100 * 1000000;
 
 async function main() {
-
+  await readConfig();
   contract = await connectContract(contractName, contractAddr)
   
   // 授权
   tokenContract = await connectContract(buyEggTokenContractName, buyEggTokenAddr)
-  ret = await tokenContract.approve(transferProxy, buyCount * price)
+  ret = await tokenContract.approve(transferProxy, buyCount * price * 60)
   await ret.wait();
 
-  // 购买
   ret = await contract.buy(buyCount, buyEggTokenAddr)
-  await ret.wait()
+  console.log(await ret.wait())
+  
+}
+
+async function readConfig() {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  contractAddr = rwaJsonData['contrat_address']['EggManager_address'];
+  buyEggTokenAddr = rwaJsonData['contrat_address']['NullsErc20TestToken'];
+  transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
 }
 
 async function connectContract(contractName, contractAddress) {

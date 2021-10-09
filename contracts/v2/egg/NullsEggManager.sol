@@ -130,7 +130,6 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         // 防止重复消费data
         require(dataInfo.isOk, "NullsEggManager/Do not repeat consumption.");
 
-        TransferProxy.erc20TransferFrom(EggToken, dataInfo.player, address(this), dataInfo.total);
         // IERC20 egg = IERC20( EggToken ) ;
         for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
             _openOne( i , dataInfo.itemId , dataInfo.player , rv) ;
@@ -206,6 +205,8 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
         require(block.timestamp <= deadline, "NullsEggManager: expired deadline");
     
+        TransferProxy.erc20TransferFrom(EggToken, msg.sender, address(this), total);
+
         // 生成hash
         bytes32 hv = keccak256(
             abi.encode(

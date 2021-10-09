@@ -156,21 +156,10 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
     // 需要预先创建擂台PK场景
     // 返回擂台ID(item ID)
     function createRank(
-        address creator,
         uint petId, 
         address token,
-        uint8 multiple,
-        uint8 v , 
-        bytes32 r , 
-        bytes32 s ,
-        address pubkey ) external override onlyOwner returns(uint256 itemId) {
-
-            require(creator != address(0), "NullsRankManager/Invalid address.");
-
-            require(
-                ecrecover(encodePack(petId, token, multiple, _useNonces(creator)), v, r, s) == creator,
-                "NullsRankManager/Signature verification failure."
-            ); 
+        uint8 multiple
+    ) external override returns(uint256 itemId) {
 
             // 是否在守擂中
             bool isLocked = PetLocked[petId] ;
@@ -182,7 +171,7 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
             require(multiple == 5 || multiple== 10, "NullsRankManager/Unsupported multiple.");
 
             // 检查petId是否合法
-            require(INullsPetToken( PetToken ).ownerOf(petId) == creator, "NullsRankManager/Pet id is illegal");
+            require(INullsPetToken( PetToken ).ownerOf(petId) == msg.sender, "NullsRankManager/Pet id is illegal");
             // 截取低8位进行判断
             require(
                 uint8(
@@ -192,9 +181,9 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
                 ) == 0xff, "NullsRankManager/Pets do not have the ability to open the Rank");
             uint initialCapital = RankTokens[token].minInitialCapital * multiple;
             // 转出擂台启动资金
-            TransferProxy.erc20TransferFrom(token, creator, address(this), initialCapital);
+            TransferProxy.erc20TransferFrom(token, msg.sender, address(this), initialCapital);
             // 创建item
-            itemId = INullsWorldCore(Proxy).newItem( SceneId , pubkey );
+            itemId = INullsWorldCore(Proxy).newItem( SceneId , address(0), 1);
 
             // 记录擂台信息
             Ranks[itemId] = Rank({
@@ -203,7 +192,7 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
                 initialCapital: initialCapital,
                 ticketAmt : RankTokens[token].minInitialCapital ,
                 multiple: multiple,
-                creater: creator,
+                creater: msg.sender,
                 bonusPool: initialCapital,
                 ownerBonus: 0,
                 gameOperatorBonus: 0,
@@ -211,7 +200,7 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
             });
 
             PetLocked[petId] = true ;            
-            emit NewRank(itemId, petId, token, initialCapital, creator, multiple, pubkey);
+            emit NewRank(itemId, petId, token, initialCapital, msg.sender, multiple, address(0));
     }
 
     function getRewardRatio(uint total) internal pure returns(uint8 RankPool, uint8 RankOwner, uint8 gameOperator) {
