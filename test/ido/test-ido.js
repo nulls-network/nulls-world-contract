@@ -67,12 +67,14 @@ async function setPeriodFinish(time = 1622394922) {
 }
 
 //设置参数 （minimum：最低认购金额） （管理员）
-async function setData(minimum = 100) {
-  const { staking, ido, owner } = await getData();
+async function setData(minimum = 100,target=21000) {
+  const { staking, ido, owner,rewards } = await getData();
 
   const decimals = await getDecimals(staking.address);
+  const rewardsDecimals = await getDecimals(rewards.address);
+  const targetAmount= BigNumber.from(10).pow(rewardsDecimals).mul(target);
   const amount = BigNumber.from(10).pow(decimals).mul(minimum);
-  const tx = await (await ido.setData(amount)).wait();
+  const tx = await (await ido.setData(amount,targetAmount)).wait();
   console.log("setData: ", tx.transactionHash);
 }
 
