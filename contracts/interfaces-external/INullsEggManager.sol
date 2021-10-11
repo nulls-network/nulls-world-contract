@@ -27,6 +27,11 @@ interface INullsEggManager {
         uint256 amount
     );
 
+    event NewEggItem(
+        uint itemId,
+        address pubkey
+    );
+
     /*
      * 设置核心合约
      *
@@ -103,5 +108,9 @@ interface INullsEggManager {
         uint total, 
         uint itemId, 
         uint256 deadline
+    ) external;
+
+    function registerItem(
+        address pubkey
     ) external;
 }

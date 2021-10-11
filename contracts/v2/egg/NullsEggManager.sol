@@ -168,6 +168,12 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         emit NewPet(petid, index , item, player, val , rv);
     }
 
+    function registerItem(address pubkey) external override onlyOwner {
+        uint itemId = INullsWorldCore(Proxy).newItem(SceneId, pubkey, 0);
+
+        emit NewEggItem(itemId, pubkey);
+    }
+
     // approve -> transferFrom
     function buy( uint total , address token ) external override {
         address sender = msg.sender ;

@@ -68,8 +68,7 @@ contract NullsWorldToken is INullsWorldToken, ERC20 {
         BeginTime = ts ;
     }
 
-    function incrDayScore( uint score ) external override onlyOper updateDayIndex {
-        address player = msg.sender ;
+    function incrDayScore(address player,uint score ) external override onlyOper updateDayIndex {
         uint tv = 0 ;
         uint dayIndex = _getDayIndex();
         Rank storage rank = Ranks[ dayIndex ][player] ;

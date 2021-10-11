@@ -52,10 +52,14 @@ contract NullsExcitation is Ownable, INullsAfterBuyEgg, INullsAfterPk {
         (,,,address superior,bool isPartner) = InviteContract.getInviteStatistics( current );
         if (index == 0 || index == 1 || isPartner) {
             uint score = amount * RewardValue[index];
-            NwtToken.incrDayScore(score);
+            NwtToken.incrDayScore(current,score);
         }
         index++;
         _doReward(buyer, superior, amount, index);
+    }
+
+    function doAfterIdo(address user, uint score) external onlyWhiteList {
+        NwtToken.incrDayScore(user, score);
     }
 
     // When buying eggs

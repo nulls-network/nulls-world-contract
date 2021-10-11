@@ -10,7 +10,7 @@ const configFile = "./scripts/config.json"
 const prefixKey = "contrat_address"
 
 // router合约是否是新部署的，如果是的话，游戏和item一定需要重新注册
-const newRouterContractFlag = true
+const newRouterContractFlag = false
 
 // 购买蛋的单价
 const eggPrice = 1 * 1000000
