@@ -35,6 +35,8 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
     ITransferProxy TransferProxy;
     uint SceneId;
 
+    uint public GodPetCount;
+
     mapping( address => BuyToken ) BuyTokens ;
 
     using Counters for Counters.Counter;
@@ -150,6 +152,14 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             index , 
             rv 
         )) ;
+
+        if (GodPetCount < 32) {
+            // 开出godPet概率为1/32
+            if (uint8(bytes1(val)) >= 248) {
+                val |= 0xff00000000000000000000000000000000000000000000000000000000000000;
+            }
+        }
+
         if (GodPetProbabilityValue != 0) {
             if (uint8(bytes1(val)) != 0xff) {
                 GodPetProbability[player] += 1;
@@ -161,6 +171,9 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             } else {
                 GodPetProbability[player] = 0;
             }
+        }
+        if (uint8(bytes1(val)) == 0xff) {
+            GodPetCount++;
         }
         petid = INullsPetToken( PetToken ).mint( player , val ) ;
 
