@@ -12,11 +12,14 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
     using Math for uint256;
     //100 day
     uint256 public constant REWARDS_FINISH = 100 days;
+    //minimum staking amount
     uint256 public MinimumStaking = 0;
+    //target staking amount 
+    uint256 public Target;
 
     mapping(address => uint256) public BalanceOf;
-
     uint256 public TotalSupply;
+
     address public StakingToken;
     address public RewardsToken;
     uint256 public PeriodFinish;
@@ -56,8 +59,9 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
         PeriodFinish = _periodFinish > block.timestamp ? _periodFinish : 0;
     }
 
-    function setData(uint256 minimum) external onlyOwner {
+    function setData(uint256 minimum,uint256 target) external onlyOwner {
         MinimumStaking = minimum;
+        Target=target;
     }
 
     function setPeriodFinish(uint256 periodFinish) external onlyOwner {

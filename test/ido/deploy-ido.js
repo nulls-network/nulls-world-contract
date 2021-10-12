@@ -8,7 +8,8 @@ const { erc20Name, contractName } = require("./config.json");
 const addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
     "0x8C47494c675333dc613547600432d53ae78b272f",
-    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "0x84f09d4688c683e2Bb84Cb36CdeC22A288eF99de"
 ]
 //ntw奖励金额
 const nwtAmount = 210000;
