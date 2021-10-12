@@ -4,13 +4,14 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../interfaces/INullsWorldToken.sol";
 
-contract NullsWorldToken is INullsWorldToken, ERC20 {
+contract NullsWorldToken is ERC20 {
 
     address Owner ;
     address Oper ;
     uint BeginTime = 0 ;
     uint Free4day = 4200 * 1e18 ;
     uint DayIndex = 0 ;
+    uint8 Decimals = 6;
 
     struct Rank {
         uint score ;
@@ -37,6 +38,10 @@ contract NullsWorldToken is INullsWorldToken, ERC20 {
     modifier onlyOper() {
         require( msg.sender == Oper , "NullsWorldToken/No oper role." );
         _ ;
+    }
+
+    function decimals() public view override returns (uint8) {
+        return Decimals;
     }
 
     modifier updateDayIndex() {
@@ -68,7 +73,7 @@ contract NullsWorldToken is INullsWorldToken, ERC20 {
         BeginTime = ts ;
     }
 
-    function incrDayScore(address player,uint score ) external override onlyOper updateDayIndex {
+    function incrDayScore(address player,uint score ) external onlyOper updateDayIndex {
         uint tv = 0 ;
         uint dayIndex = _getDayIndex();
         Rank storage rank = Ranks[ dayIndex ][player] ;

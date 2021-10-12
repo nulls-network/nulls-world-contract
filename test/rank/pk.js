@@ -23,7 +23,7 @@ async function main() {
     await ret.wait()
     
     let time = Math.floor((new Date().getTime() + 3600*1000)/1000)
-    ret = await rankContract.pk(1, 14, time)
+    ret = await rankContract.pk(3, 14, time)
     console.log(ret)
     await ret.wait()
   // }

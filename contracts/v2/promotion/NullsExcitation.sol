@@ -33,6 +33,10 @@ contract NullsExcitation is Ownable, INullsAfterBuyEgg, INullsAfterPk {
         _ ;
     }
 
+    function addWhiteList(address whiteAddr) external onlyOwner {
+        WhiteList[whiteAddr] = true;
+    }
+
     function setBaseInfo(address inviteAddr, address nwtToken) external onlyOwner {
         InviteContract = INullsInvite(inviteAddr);
         NwtToken = INullsWorldToken(nwtToken);

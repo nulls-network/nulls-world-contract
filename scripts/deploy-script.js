@@ -13,15 +13,15 @@ const prefixKey = "contrat_address"
 const newRouterContractFlag = false
 
 // 购买蛋的单价
-const eggPrice = 1 * 1000000
+const eggPrice = 100 * 1000000
 // pk入场券
-const pkPrice = 10 * 1000000
+const pkPrice = 20 * 1000000
 
 // 游戏名称
-const gameName = "Nulls"
+const gameName = "nulls-world"
 
 // 普通宠物休息时间
-const generalPetRestTime = 1
+const generalPetRestTime = 300
 
 // 成为合伙人的条件，以下满足一个即可
 // const minBuyEggNumber = 3
@@ -31,15 +31,15 @@ const generalPetRestTime = 1
 // 预售活动奖励的 token 总数
 const promotionTotal = 210000 * 1000000
 // 预售活动开始时间(UTC时间)
-const promotionStartTime = new Date(Date.UTC(2021, 9 - 1, 9, 0, 0, 0)).getTime() / 1000
+const promotionStartTime = new Date(Date.UTC(2021, 10 - 1, 12, 0, 0, 0)).getTime() / 1000
 // const promotionStartTime = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
 // 预售活动结束时间
-const promotionEndTime = new Date(Date.UTC(2021, 10 - 1, 10, 0, 0, 0)).getTime() / 1000
+const promotionEndTime = new Date(Date.UTC(2021, 11 - 1, 12, 0, 0, 0)).getTime() / 1000
 // 预售期蛋购买者和其三级关系奖励金额
-const buyer = 40 * 1000000
-const one = 30 * 1000000
-const two = 20 * 1000000
-const three = 10 * 1000000
+const buyer = 4 * 1000000
+const one =   2 * 1000000
+const two =   1 * 1000000
+const three = 5 * 100000
 
 // 市场交易宠物手续费，万分之几
 const petTransferFee = 30;

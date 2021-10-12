@@ -10,7 +10,8 @@ interface INullsEggManager {
         uint item, 
         address player, 
         bytes32 v, 
-        bytes32 rv
+        bytes32 rv,
+        bytes32 requestKey
     );
 
     // 预开蛋事件: itemID、业务hash、nonce值、过期时间

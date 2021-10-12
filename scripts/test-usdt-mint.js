@@ -5,7 +5,7 @@ async function main() {
 
   // 用于测试期间支付购买宠物、pk的token
   contract = await connectContract("NullsERC20Token", "0x6aA7CF4F83c6a88cABD93b40D47E7144311882B8")
-  await contract.mint("0x3470FCab4f73c455965cB94F5f6dFE9EDfd6F29e", 10000000000000)
+  await contract.mint("0xD050c8541a59f0eeb4a01b7322039658887893D9", 10000000000000)
 }
 
 async function connectContract(contractName, contractAddress) {

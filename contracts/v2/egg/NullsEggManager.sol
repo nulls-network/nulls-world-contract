@@ -134,7 +134,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
         // IERC20 egg = IERC20( EggToken ) ;
         for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
-            _openOne( i , dataInfo.itemId , dataInfo.player , rv) ;
+            _openOne( i , dataInfo.itemId , dataInfo.player , rv, key) ;
         }
  
         // isOk标志设置为false
@@ -144,7 +144,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         return true;
     }
 
-    function _openOne( uint8 index , uint item , address player , bytes32 rv ) internal returns ( uint petid ){
+    function _openOne( uint8 index , uint item , address player , bytes32 rv, bytes32 requestKey) internal returns ( uint petid ){
         //random v 
         bytes32 val = keccak256( abi.encode(
             player , 
@@ -178,7 +178,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         petid = INullsPetToken( PetToken ).mint( player , val ) ;
 
         //emit Open
-        emit NewPet(petid, index , item, player, val , rv);
+        emit NewPet(petid, index , item, player, val , rv, requestKey);
     }
 
     function registerItem(address pubkey) external override onlyOwner {
