@@ -5,7 +5,7 @@ const { erc20Name, contractName } = require("./config.json");
 
 //  npx hardhat clean && npx hardhat run test/ido/deploy-ido.js
 
-const addressList = [
+let addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
     "0x8C47494c675333dc613547600432d53ae78b272f",
     "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -17,24 +17,18 @@ const nwtAmount = 210000;
 async function main() {
     const [owner] = await hre.ethers.getSigners();
     console.log("deploy start")
-    const stakingToken = await deployErc20(["USDC", "USDC", 6]);
+    const stakingToken = await deployErc20(["stakingToken", "USDC", 6],true,true);
 
-    const nwt = await deployErc20(["NWT", "NWT", 6]);
+    const nwt = await deployErc20(["rewardsToken", "NWT", 6],false,false);
 
     const factory = "0xe544026845d1ee29cf74fe706cc9661be7fd9510";
     const IDO = await hre.ethers.getContractFactory(contractName);
     const ido = await IDO.deploy(stakingToken.address, nwt.address, factory, 1640970061);
     await ido.deployed();
     console.log(`ido address>> ${ido.address}`);
-    await (await stakingToken.mint(owner.address, BigNumber.from(10).pow(25))).wait()
-    for (const key of addressList) {
-        await (await stakingToken.mint(key, BigNumber.from(10).pow(25))).wait();
-        console.log("mint>>>:")
-    }
     const nwtTotalSupply=BigNumber.from(10).pow(6).mul(21000000-nwtAmount);
     await (await nwt.mint(owner.address, nwtTotalSupply)).wait();
-
-    await nwt.mint(ido.address, BigNumber.from(10).pow(6).mul(nwtAmount));
+    await (await nwt.mint(ido.address, BigNumber.from(10).pow(6).mul(nwtAmount))).wait();
     upAddress(ido.address, stakingToken.address, nwt.address);
     await verify(ido.address, [
         stakingToken.address,
@@ -44,11 +38,27 @@ async function main() {
     ]);
 }
 
-async function deployErc20(constructor) {
+async function deployErc20(constructor,noOverride,mint) {
+    const json = readJsonFromFile();
+
+    const contractAddress = json[constructor[0]];
+    if (contractAddress && noOverride) {
+        const [owner] = await hre.ethers.getSigners();
+        let contract = await hre.ethers.getContractAt(erc20Name, contractAddress, owner);
+        return contract;
+    }
     const ERC20 = await hre.ethers.getContractFactory(erc20Name);
     const erc20 = await ERC20.deploy(...constructor);
     await erc20.deployed();
     console.log(`erc20 address>> ${erc20.address}`);
+    if(mint){
+        await (await erc20.mint(owner.address, BigNumber.from(10).pow(constructor[2] + 8))).wait();
+        for (const key of addressList) {
+            await (await erc20.mint(key, BigNumber.from(10).pow(constructor[2] + 9 ))).wait();
+            console.log("mint>>>:",key)
+        }
+    }
+
     // verify(erc20.address, constructor);
     return erc20;
 
@@ -67,16 +77,16 @@ function writeJosnToConfigFile(data) {
 function upAddress(address, stakingToken, rewardsToken) {
     let data = readJsonFromFile()
     data.address = address;
-    data.stakingAddress = stakingToken;
-    data.rewardsAddress = rewardsToken;
+    data.stakingToken = stakingToken;
+    data.rewardsToken = rewardsToken;
     writeJosnToConfigFile(data);
 }
 
 async function verify(address, constructor) {
-    await hre.run("verify:verify", {
-        address: address,
-        constructorArguments: constructor,
-    });
+    // await hre.run("verify:verify", {
+    //     address: address,
+    //     constructorArguments: constructor,
+    // });
 }
 
 

@@ -9,28 +9,41 @@ const addressList = [
 ]
 const startTime = 1630425600; //2021-9-1
 async function main() {
+
     const [owner] = await hre.ethers.getSigners();
     console.log("deploy start");
-    // const stakingToken = await deployErc20(["USDC", "USDC", 6]);
+    const stakingToken = await deployErc20(["stakingToken", "USDC", 6],true,true);
     const StakingCore = await hre.ethers.getContractFactory(contractName);
-    const constructor = [startTime, "0xdC80db2c7fF47F790f29692f538b0cDAf0dA853B", "0xdC80db2c7fF47F790f29692f538b0cDAf0dA853B"];
+    const constructor = [startTime, stakingToken.address, stakingToken.address];
     const staking = await StakingCore.deploy(...constructor);
     await staking.deployed();
     console.log("staking address>>", staking.address);
-    // update(staking.address, stakingToken.address);
+    update(staking.address, stakingToken.address);
     await verify(staking.address, constructor)
 }
 
-async function deployErc20(constructor) {
-    const [owner] = await hre.ethers.getSigners();
+
+async function deployErc20(constructor,noOverride,mint) {
+    const json = readJsonFromFile();
+
+    const contractAddress = json[constructor[0]];
+    if (contractAddress && noOverride) {
+        const [owner] = await hre.ethers.getSigners();
+        let contract = await hre.ethers.getContractAt(erc20Name, contractAddress, owner);
+        return contract;
+    }
     const ERC20 = await hre.ethers.getContractFactory(erc20Name);
     const erc20 = await ERC20.deploy(...constructor);
     await erc20.deployed();
     console.log(`erc20 address>> ${erc20.address}`);
-    await (await erc20.mint(owner.address, BigNumber.from(10).pow(25))).wait();
-    for (const key of addressList) {
-       await( await erc20.mint(key, BigNumber.from(10).pow(25))).wait();
+    if(mint){
+        await (await erc20.mint(owner.address, BigNumber.from(10).pow(constructor[2] + 8))).wait();
+        for (const key of addressList) {
+            await (await erc20.mint(key, BigNumber.from(10).pow(constructor[2] + 9 ))).wait();
+            console.log("mint>>>:",key)
+        }
     }
+
     // verify(erc20.address, constructor);
     return erc20;
 
@@ -50,7 +63,7 @@ function writeJosnToConfigFile(data) {
 function update(address, stakingToken) {
     let data = readJsonFromFile()
     data.address = address;
-    data.stakingAddress = stakingToken;
+    data.stakingToken = stakingToken;
     writeJosnToConfigFile(data);
 }
 

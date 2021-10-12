@@ -1,6 +1,6 @@
 const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
-const { address, contractName, erc20Name, stakingAddress, rewardsAddress } = require("./config.json");
+const { address, contractName, erc20Name, stakingToken, rewardsToken } = require("./config.json");
 
 
 // npx hardhat run test/ido/test-ido.js 
@@ -173,8 +173,8 @@ async function pairFor() {
 async function getData() {
   const [owner] = await hre.ethers.getSigners();
   const ido = await connectContract(contractName, address);
-  const staking = await connectContract(erc20Name, stakingAddress);
-  const rewards = await connectContract(erc20Name, rewardsAddress);
+  const staking = await connectContract(erc20Name, stakingToken);
+  const rewards = await connectContract(erc20Name, rewardsToken);
   data = {
     rewards: rewards,
     staking: staking,

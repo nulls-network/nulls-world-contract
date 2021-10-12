@@ -1,6 +1,6 @@
 const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
-const { address, contractName, erc20Name, stakingAddress } = require("./config.json");
+const { address, contractName, erc20Name, stakingToken } = require("./config.json");
 
 // npx hardhat run test/staking/test-staking.js
 async function main() {
@@ -15,7 +15,7 @@ async function stake(amount = 10000) {
   await approve(token.address, staking.address);
   const decimals = await getDecimals(token.address)
   const value = BigNumber.from(10).pow(decimals).mul(amount);
-  const tx = await (await staking.stake(value, 0)).wait();
+  const tx = await (await staking.stake(value)).wait();
   console.log("stake: ", tx.transactionHash);
 }
 
@@ -54,7 +54,7 @@ async function withdraw(key) {
 async function getData() {
   const [owner] = await hre.ethers.getSigners();
   const staking = await connectContract(contractName, address);
-  const token = await connectContract(erc20Name, stakingAddress);
+  const token = await connectContract(erc20Name, stakingToken);
   data = {
     staking: staking,
     token: token,
