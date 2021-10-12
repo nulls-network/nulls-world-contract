@@ -78,7 +78,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
     }
 
     function stake(uint256 amount) external nonReentrant OnStake {
-        require(amount > MinimumStaking, "amount to low");
+        require(amount >= MinimumStaking, "amount to low");
         require(
             IERC20(StakingToken).transferFrom(
                 msg.sender,
@@ -115,8 +115,8 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
         uint256 time = rewardTime(msg.sender);
         uint256 rate = rateOf(msg.sender);
         uint256 liquidity = rate * TotalLP;
-        require(liquidity >= 0x989680, "Insufficient liquidity");
-        liquidity /= 0x989680;
+        require(liquidity >= 1e18, "Insufficient liquidity");
+        liquidity /= 1e18;
         (uint256 amountStaking, uint256 amountRewards) = _safeRemoveLiquidity(
             StakingToken,
             RewardsToken,
@@ -126,24 +126,24 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
             block.timestamp
         );
         ReceivedLP += liquidity;
-        uint256 amountAccount = (rate * BalanceOf[msg.sender]) / 0x989680;
+        uint256 amountAccount = (rate * BalanceOf[msg.sender]) / 1e18;
         IERC20(StakingToken).transfer(msg.sender, amountStaking);
-
+        uint256 amountToken = 0;
         if (amountStaking < amountAccount) {
             uint256 destroyAmount = (Destroy * time) / 1e18;
             if (amountRewards > destroyAmount) {
-                uint256 give = ((amountRewards - destroyAmount) * rate) /
-                    0x989680;
-                IERC20(RewardsToken).transfer(msg.sender, give);
+                amountToken = ((amountRewards - destroyAmount) * rate) /
+                    1e18;
+                IERC20(RewardsToken).transfer(msg.sender, amountToken);
             }
         }
         ReceivedLast[msg.sender] += time;
-        emit RewardPaid(msg.sender, amountStaking, liquidity);
+        emit RewardPaid(msg.sender, amountStaking, amountToken);
     }
 
     function rateOf(address account) public view returns (uint256) {
         uint256 time = rewardTime(account);
-        uint256 balanceRate = (BalanceOf[account] * 0x989680) / TotalSupply;
+        uint256 balanceRate = (BalanceOf[account] * 1e18) / TotalSupply;
         return (balanceRate * time) / REWARDS_FINISH;
     }
 

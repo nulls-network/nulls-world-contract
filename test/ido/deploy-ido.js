@@ -25,12 +25,14 @@ async function main() {
     const IDO = await hre.ethers.getContractFactory(contractName);
     const ido = await IDO.deploy(stakingToken.address, nwt.address, factory, 1640970061);
     await ido.deployed();
+    console.log(`ido address>> ${ido.address}`);
     await (await stakingToken.mint(owner.address, BigNumber.from(10).pow(25))).wait()
     for (const key of addressList) {
-        await (await stakingToken.mint(key, BigNumber.from(10).pow(25))).wait()
+        await (await stakingToken.mint(key, BigNumber.from(10).pow(25))).wait();
+        console.log("mint>>>:")
     }
-    await (await nwt.mint(owner.address, BigNumber.from(10).pow(25))).wait()
-    console.log(`ido address>> ${ido.address}`);
+    const nwtTotalSupply=BigNumber.from(10).pow(6).mul(21000000-nwtAmount);
+    await (await nwt.mint(owner.address, nwtTotalSupply)).wait();
 
     await nwt.mint(ido.address, BigNumber.from(10).pow(6).mul(nwtAmount));
     upAddress(ido.address, stakingToken.address, nwt.address);
@@ -47,7 +49,7 @@ async function deployErc20(constructor) {
     const erc20 = await ERC20.deploy(...constructor);
     await erc20.deployed();
     console.log(`erc20 address>> ${erc20.address}`);
-    verify(erc20.address, constructor);
+    // verify(erc20.address, constructor);
     return erc20;
 
 }
@@ -71,10 +73,10 @@ function upAddress(address, stakingToken, rewardsToken) {
 }
 
 async function verify(address, constructor) {
-    // await hre.run("verify:verify", {
-    //     address: address,
-    //     constructorArguments: constructor,
-    // });
+    await hre.run("verify:verify", {
+        address: address,
+        constructorArguments: constructor,
+    });
 }
 
 
