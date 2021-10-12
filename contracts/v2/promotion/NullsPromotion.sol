@@ -7,6 +7,8 @@ import "../../interfaces-external/INullsPromotion.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "../../interfaces/INullsWorldToken.sol";
+
 // 促销合约
 // 所有计算没有使用 SafeMath , 需要考虑溢出情况。
 contract NullsPromotion is INullsPromotion, Ownable, INullsAfterBuyEgg {
@@ -75,7 +77,7 @@ contract NullsPromotion is INullsPromotion, Ownable, INullsAfterBuyEgg {
                 // IERC20(RewardToken).transfer( current , rewardValue );
                 UserRewards[current] += rewardValue;
                 RewardUsed += rewardValue ; 
-                emit RewardRecord(buyer, current, rewardValue, index);
+                emit RewardRecord(buyer, current, rewardValue, index,RewardToken, INullsWorldToken(RewardToken).decimals());
             }
             
             index++ ;

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 interface INullsPromotion {
     // 奖励记录: 恐龙蛋购买者、奖励获得者、获得token数量、index(0,1,2,3)
-    event RewardRecord( address buyer, address target, uint rewardvalue, uint index);
+    event RewardRecord( address buyer, address target, uint rewardvalue, uint index, address tokenAddr, uint8 decim);
     // 领取记录: 领取者、金额
     event ReceiveReward(address user, uint total);
 

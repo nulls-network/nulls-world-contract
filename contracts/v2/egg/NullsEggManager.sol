@@ -35,6 +35,8 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
     ITransferProxy TransferProxy;
     uint SceneId;
 
+    uint public GodPetCount;
+
     mapping( address => BuyToken ) BuyTokens ;
 
     using Counters for Counters.Counter;
@@ -132,7 +134,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
         // IERC20 egg = IERC20( EggToken ) ;
         for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
-            _openOne( i , dataInfo.itemId , dataInfo.player , rv) ;
+            _openOne( i , dataInfo.itemId , dataInfo.player , rv, key) ;
         }
  
         // isOk标志设置为false
@@ -142,7 +144,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         return true;
     }
 
-    function _openOne( uint8 index , uint item , address player , bytes32 rv ) internal returns ( uint petid ){
+    function _openOne( uint8 index , uint item , address player , bytes32 rv, bytes32 requestKey) internal returns ( uint petid ){
         //random v 
         bytes32 val = keccak256( abi.encode(
             player , 
@@ -150,6 +152,14 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             index , 
             rv 
         )) ;
+
+        if (GodPetCount < 32) {
+            // 开出godPet概率为1/32
+            if (uint8(bytes1(val)) >= 248) {
+                val |= 0xff00000000000000000000000000000000000000000000000000000000000000;
+            }
+        }
+
         if (GodPetProbabilityValue != 0) {
             if (uint8(bytes1(val)) != 0xff) {
                 GodPetProbability[player] += 1;
@@ -162,10 +172,19 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
                 GodPetProbability[player] = 0;
             }
         }
+        if (uint8(bytes1(val)) == 0xff) {
+            GodPetCount++;
+        }
         petid = INullsPetToken( PetToken ).mint( player , val ) ;
 
         //emit Open
-        emit NewPet(petid, index , item, player, val , rv);
+        emit NewPet(petid, index , item, player, val , rv, requestKey);
+    }
+
+    function registerItem(address pubkey) external override onlyOwner {
+        uint itemId = INullsWorldCore(Proxy).newItem(SceneId, pubkey, 0);
+
+        emit NewEggItem(itemId, pubkey);
     }
 
     // approve -> transferFrom

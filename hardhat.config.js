@@ -41,6 +41,10 @@ module.exports = {
     "ht-testnet-user3": {
       url: "https://http-testnet.huobichain.com",
       accounts: ['ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80']
+    },
+    "ht-testnet-user4": {
+      url: "https://http-testnet.huobichain.com",
+      accounts: ['e38341075ef2a6b96b2284e829aa013cbb4f963cd091a12c1472e743568a1c64']
     }
   }
 };

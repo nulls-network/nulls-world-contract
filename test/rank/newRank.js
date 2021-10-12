@@ -24,7 +24,7 @@ async function createRing() {
     //创建擂台 
     let ringManager_contrcat = await connectContract(contractName, contractAddr);
 
-    let petId = 58;
+    let petId = 121;
     let multiple = 5;
 
     await ringManager_contrcat.createRank(petId, nullsERC20Token, multiple);

@@ -1,8 +1,10 @@
 const hre = require("hardhat")
 const fs = require("fs");
 
+const {NonceManager} = require("@ethersproject/experimental");
+
 // 买蛋测试脚本,使用ht-testnet-user1测试
-// npx hardhat run test/egg/openEgg.js --network ht-testnet-user1
+// npx hardhat run test/egg/openEggCocurrent.js --network ht-testnet-user1
 
 const contractName = "NullsEggManager";
 let contractAddr = "";
@@ -12,6 +14,7 @@ let transferProxy = "";
 let eggTokenAddr = "";
 const eggTokenContractName = "NullsEggToken";
 const openEggNumber = 20;
+const concurrentNumber = 10;
 async function main() {
 
   await readConfig()
@@ -19,13 +22,25 @@ async function main() {
   
   // 授权
   tokenContract = await connectContract(eggTokenContractName, eggTokenAddr)
-  ret = await tokenContract.approve(transferProxy, openEggNumber)
+  ret = await tokenContract.approve(transferProxy, openEggNumber * concurrentNumber)
   await ret.wait()
   
-  let time = Math.floor((new Date().getTime() + 3600*1000)/1000)
-  ret = await eggContract.openMultiple(openEggNumber, 2, time)
-  await ret.wait()
+  let array = [];
+  for (let i = 0; i < concurrentNumber; i++) {
+    let time = Math.floor((new Date().getTime() + 3600*1000)/1000)
+    array[i] = await eggContract.openMultiple(openEggNumber, 0, time)
+    console.log("-------", i)
+  }
 
+  for (let i = 0; i < array.length; i++) {
+    try {
+      ret = await array[i].wait()
+    } catch (e) {
+      console.warn(e)
+    }
+    
+    console.log(ret)
+  }
 }
 
 async function readConfig() {
@@ -39,7 +54,8 @@ async function readConfig() {
 
 async function connectContract(contractName, contractAddress) {
   const [owner] = await hre.ethers.getSigners();
-  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, owner)
+  const managedSigner = new NonceManager(owner);
+  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, managedSigner)
 
   console.log(`connected ${contractName} address is : ${contract.address}`)
   return contract;

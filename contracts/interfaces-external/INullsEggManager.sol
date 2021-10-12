@@ -10,7 +10,8 @@ interface INullsEggManager {
         uint item, 
         address player, 
         bytes32 v, 
-        bytes32 rv
+        bytes32 rv,
+        bytes32 requestKey
     );
 
     // 预开蛋事件: itemID、业务hash、nonce值、过期时间
@@ -25,6 +26,11 @@ interface INullsEggManager {
     event OpenEggBefore(
         address user,
         uint256 amount
+    );
+
+    event NewEggItem(
+        uint itemId,
+        address pubkey
     );
 
     /*
@@ -103,5 +109,9 @@ interface INullsEggManager {
         uint total, 
         uint itemId, 
         uint256 deadline
+    ) external;
+
+    function registerItem(
+        address pubkey
     ) external;
 }
