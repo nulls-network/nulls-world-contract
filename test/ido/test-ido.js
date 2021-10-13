@@ -52,7 +52,7 @@ async function stake(amount = 20000) {
   const { staking, ido, owner } = await getData();
   await approve(staking.address, ido.address);
   const decimals = await getDecimals(staking.address);
-  const stakingAmount = BigNumber.from(10).pow(decimals).mul(amount);
+  const stakingAmount = decimals.mul(amount);
   const stakeTx = await (await ido.stake(stakingAmount)).wait();
   console.log("stake: ", stakeTx.transactionHash);
 }
@@ -72,8 +72,8 @@ async function setData(minimum = 100,target=21000) {
 
   const decimals = await getDecimals(staking.address);
   const rewardsDecimals = await getDecimals(rewards.address);
-  const targetAmount= BigNumber.from(10).pow(rewardsDecimals).mul(target);
-  const amount = BigNumber.from(10).pow(decimals).mul(minimum);
+  const targetAmount= rewardsDecimals.mul(target);
+  const amount = decimals.mul(minimum);
   const tx = await (await ido.setData(amount,targetAmount)).wait();
   console.log("setData: ", tx.transactionHash);
 }
@@ -116,7 +116,7 @@ async function swapExactTokensForTokens(amountIn, token) {
   const { rewards, staking, ido, owner } = await getData();
   await approve(token, ido.address);
   const decimals = await getDecimals(token);
-  const amount = BigNumber.from(10).pow(decimals).mul(amountIn);
+  const amount = decimals.mul(amountIn);
   const path = token == staking.address ? [staking.address, rewards.address] : [rewards.address, staking.address];
   await (await ido.swapExactTokensForTokens(amount, 1, path, owner.address, 1695954712)).wait();
 }
@@ -201,7 +201,7 @@ async function getDecimals(address) {
   erc20 = await connectContract(erc20Name, address);
   const decimals = await erc20.decimals();
   console.log("decimals: ", decimals)
-  return decimals;
+  return BigNumber.from(10).pow(decimals);
 }
 
 

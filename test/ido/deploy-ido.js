@@ -38,6 +38,14 @@ async function main() {
     ]);
 }
 
+async function getDecimals(address) {
+    const [owner] = await hre.ethers.getSigners();
+    erc20 = await connectContract(erc20Name, address);
+    const decimals = await erc20.decimals();
+    console.log("decimals: ", decimals)
+    return BigNumber.from(10).pow(decimals);
+  }
+
 async function deployErc20(constructor,noOverride,mint) {
     const json = readJsonFromFile();
 
@@ -81,6 +89,9 @@ function upAddress(address, stakingToken, rewardsToken) {
     data.rewardsToken = rewardsToken;
     writeJosnToConfigFile(data);
 }
+
+
+
 
 async function verify(address, constructor) {
     // await hre.run("verify:verify", {

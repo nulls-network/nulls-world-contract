@@ -14,7 +14,7 @@ async function stake(amount = 10000) {
   const { staking, token, owner } = await getData();
   await approve(token.address, staking.address);
   const decimals = await getDecimals(token.address)
-  const value = BigNumber.from(10).pow(decimals).mul(amount);
+  const value = decimals.mul(amount);
   const tx = await (await staking.stake(value)).wait();
   console.log("stake: ", tx.transactionHash);
 }
@@ -80,8 +80,17 @@ async function getDecimals(address) {
   const [owner] = await hre.ethers.getSigners();
   erc20 = await connectContract(erc20Name, address);
   const decimals = await erc20.decimals();
-  console.log("decimals: ", decimals)
-  return decimals;
+  console.log("decimals: ", decimals);
+  return BigNumber.from(10).pow(decimals);
+}
+
+
+async function mint(address, to, amount) {
+  const [owner] = await hre.ethers.getSigners();
+  erc20 = await connectContract(erc20Name, address);
+  const decimals = getDecimals(address);
+  const tx = await (await erc20.mint(to, (await decimals).mul(amount))).wait();
+  console.log("mint: ", tx.transactionHash);
 }
 
 

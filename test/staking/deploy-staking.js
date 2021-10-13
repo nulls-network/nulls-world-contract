@@ -6,6 +6,7 @@ const { erc20Name, contractName } = require("./config.json");
 // npx hardhat clean && npx hardhat run test/staking/deploy-staking.js
 const addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
+    "0x84f09d4688c683e2Bb84Cb36CdeC22A288eF99de",
 ]
 const startTime = 1630425600; //2021-9-1
 async function main() {
