@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../interfaces/INullsBigPrizePool.sol";
 
 contract StakingCore is Ownable, ReentrancyGuard {
     using Math for uint256;
@@ -23,10 +24,11 @@ contract StakingCore is Ownable, ReentrancyGuard {
     struct Rewards {
         uint256 amount;
         uint256 totalStaking;
-        uint256 timestamp;
     }
 
-    address public PrizePool;
+    INullsBigPrizePool public PrizePool;
+    address public RewardsToken;
+    uint256 public PrizePoolIndex;
     address public StakingToken;
 
     uint256 public StartTime;
@@ -50,7 +52,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
     event Withdraw(address indexed account, uint256 amount);
     event WithdrawDay(address indexed account, uint256 amount, uint256 key);
     event SetCoefficient(uint256 indexed time, uint256 coefficient);
-    event NotifyRewards(uint256 indexed index, uint256 rewards,uint256 totalStaking,uint256 day);
+    event NotifyRewards(uint256 indexed index, uint256 rewards,uint256 totalStaking);
     constructor(
         uint256 _startTime,
         address _stakingToken,
@@ -58,11 +60,12 @@ contract StakingCore is Ownable, ReentrancyGuard {
     ) {
         StartTime = _startTime;
         StakingToken = _stakingToken;
-        PrizePool = _prizePool;
+        PrizePool = INullsBigPrizePool(_prizePool);
+        RewardsToken = PrizePool.TokenAddr();
     }
 
     modifier onStart() {
-        require(block.timestamp > StartTime, "");
+        require(block.timestamp > StartTime, "The event has not yet started");
         _;
     }
 
@@ -80,9 +83,11 @@ contract StakingCore is Ownable, ReentrancyGuard {
          emit SetCoefficient(time,coefficient);
     }
 
+    function dayRewardsLength() public view returns(uint256) {
+        return DayRewards.length;
+    }
 
-
-    function stakeDay(uint256 amount, uint16 time)  external nonReentrant onStart{
+    function stakeDay(uint256 time, uint256 amount)  external nonReentrant onStart{
         require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
         uint256 coefficient = getCoefficient(time);
         require(coefficient > 0, "Coefficient not exist");
@@ -122,26 +127,26 @@ contract StakingCore is Ownable, ReentrancyGuard {
     }
 
     function notifyRewards() external onlyOwner {
-        uint256 len = DayRewards.length;
-        uint256 time = len > 0 ? DayRewards[len - 1].timestamp : StartTime;
-        uint256 day = (block.timestamp - time) / 1 days;
-        day = Math.min(day, 5);
-        if (day > 0) {
-            //todo prizePoolAddress
-            uint256 amount = 111;
-            for (uint256 index = 0; index < day; index++) {
-                time += 1 days;
-                Rewards memory rewards = Rewards({
-                    amount: amount,
-                    totalStaking: TotalSupply,
-                    timestamp: time
-                });
-                TotalRewards += amount;
-                DayRewards.push(rewards);
-                emit NotifyRewards(DayRewards.length, amount,TotalSupply,time);
-            }
-           
+        if(PrizePoolIndex == 0){
+            //todo update
+            // PrizePoolIndex=INullsBigPrizePool(PrizePool);
         }
+        uint256 index = PrizePoolIndex;
+        uint256 len = Math.min(index + 10, PrizePool.DayIndex());
+        require(index < len, "No rewards available");
+        for (; index < len; index++) {
+            (uint8 code,uint256 amount) = PrizePool.transferOut(index);
+            //todo code error
+            Rewards memory rewards = Rewards({
+                amount: amount,
+                totalStaking: TotalSupply
+            });
+            TotalRewards += amount;
+            DayRewards.push(rewards);
+            emit NotifyRewards(DayRewards.length, amount,TotalSupply);
+        }
+        PrizePoolIndex = index;
+        
     }
 
     function getDayRewards(uint256 key) external nonReentrant {
@@ -161,7 +166,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     function withdraw(uint256 amount) external nonReentrant {
         Account memory account = Voucher[msg.sender];
-        require(amount > 0 && account.amount > amount,"");
+        require(amount > 0 && account.amount > amount,"Wrong amount withdrawn");
         TotalSupply -= amount;
         BalanceOf[msg.sender] -= amount;
 
@@ -174,8 +179,9 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     function withdrawDay(uint256 key) external nonReentrant {
         Account memory account = DayVoucher[key];
-        require(account.amount > 0, " ");
-        require(block.timestamp < account.unlockTime, " ");
+        require(account.account== msg.sender,"The amount does not belong to you");
+        require(account.amount > 0, "The amount has been withdrawn");
+        require(block.timestamp < account.unlockTime, "Lockout time is not over");
         TotalSupply -= account.total;
         BalanceOf[msg.sender] -= account.total;
         uint256 amount = account.amount;
@@ -187,9 +193,10 @@ contract StakingCore is Ownable, ReentrancyGuard {
     }
 
     function _reward(Account memory account) internal returns (uint256) {
-        require(account.account == msg.sender && account.amount > 0, "");
+        require(account.account == msg.sender, "The reward does not belong to you");
         uint256 len = Math.min(DayRewards.length, account.start + 20);
         uint256 start = account.start;
+         require(start == len && account.amount > 0, "Cannot collect rewards");
         uint256 amount = 0;
         for (; start < len; start++) {
             Rewards memory rewards = DayRewards[start];
@@ -199,9 +206,8 @@ contract StakingCore is Ownable, ReentrancyGuard {
             }
         }
         TotalRewards -= amount;
-        // todo erc20 address
         require(
-            IERC20(address(0)).transfer(account.account, amount),
+            IERC20(RewardsToken).transfer(account.account, amount),
             "transfer error"
         );
         return start;

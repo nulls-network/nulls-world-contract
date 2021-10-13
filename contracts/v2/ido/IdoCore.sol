@@ -71,7 +71,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
         } else {
             require(
                 block.timestamp < PeriodFinish,
-                "Cannot be performed stake"
+                "The event has ended"
             );
             PeriodFinish = periodFinish;
         }

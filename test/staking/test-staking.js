@@ -4,10 +4,18 @@ const { address, contractName, erc20Name, stakingToken } = require("./config.jso
 
 // npx hardhat run test/staking/test-staking.js
 async function main() {
-  await stake();
+  // await stake();
+  await voucher()
 }
 
 
+// 默认14天
+async function setCoefficient(time = 1209600, coefficient = 1100) {
+  const { staking, token, owner } = await getData();
+
+  const tx = await (await staking.setCoefficient(time, coefficient)).wait();
+  console.log("stake: ", tx.transactionHash);
+}
 
 // 锁仓
 async function stake(amount = 10000) {
@@ -45,6 +53,12 @@ async function withdraw(key) {
   const { staking, token, owner } = await getData();
   const tx = await (await staking.withdraw()).wait();
   console.log("withdraw: ", tx.transactionHash);
+}
+
+async function voucher(key) {
+  const { staking, token, owner } = await getData();
+  const data=await staking.Voucher(owner.address);
+  console.log("voucher: ", data);
 }
 
 
