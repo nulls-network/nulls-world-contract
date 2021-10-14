@@ -41,9 +41,9 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     mapping(address => Account) public Voucher;
 
-    mapping(uint256 => Account) DayVoucher;
+    mapping(uint256 => Account) public DayVoucher;
 
-    mapping(uint256 => uint256) Coefficient;
+    mapping(uint256 => uint256) public Coefficient;
 
     Rewards[] public DayRewards;
 
