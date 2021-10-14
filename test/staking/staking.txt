@@ -1,0 +1,35 @@
+
+staking合约地址: 0xC182a5B84F391Ce85fA16fF008A3aed5CAb76aEd
+
+----查询接口
+锁仓币种地址：StakingToken
+奖励币种地址：RewardsToken   //要更新abi 旧接口为rewardsToken
+
+奖池总额：TotalRewards
+质押总额：TotalSupply
+我的质押总额：BalanceOf(address)
+所占份额 ： 我的质押总额 / 质押总额
+
+--------------
+我的质押（活期）：Voucher(address)
+我的质押（按天）: DayVoucher(key)   //key通过后台接口获取
+
+我的质押金额: voucher.amount
+份额: voucher.total / 质押总额
+可领取分红: 
+解押剩余时间: voucher.unlockTime (时间戳)
+
+-------------
+最后奖励下标：dayRewardsLength
+
+
+
+--操作接口
+活期质押：stake(amount)
+定期质押：stakeDay(day,amount)
+
+领取活期奖励：getReward()
+领取定期奖励：getDayRewards(key)  //key通过后台接口获取
+
+活期解押：withdraw(amount)
+定期解押：withdrawDay(key)  //key通过后台接口获取

@@ -2,20 +2,24 @@ const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
 const { address, contractName, erc20Name, stakingToken } = require("./config.json");
 
+
 // npx hardhat run test/staking/test-staking.js
 async function main() {
+
+  // ----操作
+  // 活期锁仓
   // await stake();
-  await voucher()
+  // 定期锁仓 默认14天 
+  // await stakeDay();
+
+  // //领取活期奖励
+  // await getReward();
+
+  //领取定期奖励，key事件获取
+  await getDayRewards();
+
 }
 
-
-// 默认14天
-async function setCoefficient(time = 1209600, coefficient = 1100) {
-  const { staking, token, owner } = await getData();
-
-  const tx = await (await staking.setCoefficient(time, coefficient)).wait();
-  console.log("stake: ", tx.transactionHash);
-}
 
 // 锁仓
 async function stake(amount = 10000) {
@@ -27,22 +31,30 @@ async function stake(amount = 10000) {
   console.log("stake: ", tx.transactionHash);
 }
 
-// 更新每日奖励
-async function notifyRewards() {
+// 定期锁仓 默认14天
+async function stakeDay(day = 14,amount = 10000 ) {
   const { staking, token, owner } = await getData();
-  const tx = await (await staking.notifyRewards()).wait();
-  console.log("notifyRewards: ", tx.transactionHash);
+  await approve(token.address, staking.address);
+  const decimals = await getDecimals(token.address)
+  const value = decimals.mul(amount);
+  const time= getTime(day)
+  const tx = await (await staking.stakeDay(time, value)).wait();
+  console.log("stakeDay: ", tx.transactionHash);
 }
 
-// 领取系数奖励
+// 领取定期奖励
 async function getDayRewards(key) {
+  if(!key){
+    console.log("key not null");
+    return;
+  }
   const { staking, token, owner } = await getData();
   const tx = await (await staking.getDayRewards(key)).wait();
   console.log("getDayRewards: ", tx.transactionHash);
 }
 
-// 领取随存随取奖励
-async function getReward(key) {
+// 领取活期奖励
+async function getReward() {
   const { staking, token, owner } = await getData();
   const tx = await (await staking.getReward()).wait();
   console.log("getReward: ", tx.transactionHash);
@@ -55,14 +67,37 @@ async function withdraw(key) {
   console.log("withdraw: ", tx.transactionHash);
 }
 
-async function voucher(key) {
+
+
+// 默认14天
+async function setCoefficient(time = day14, coefficient = 1100) {
   const { staking, token, owner } = await getData();
-  const data=await staking.Voucher(owner.address);
-  console.log("voucher: ", data);
+  const tx = await (await staking.setCoefficient(time, coefficient)).wait();
+  console.log("stake: ", tx.transactionHash);
 }
 
 
 
+// 更新每日奖励
+async function notifyRewards() {
+  const { staking, token, owner } = await getData();
+  const tx = await (await staking.notifyRewards()).wait();
+  console.log("notifyRewards: ", tx.transactionHash);
+}
+
+
+
+
+async function voucher(key) {
+  const { staking, token, owner } = await getData();
+  const data = await staking.Voucher(owner.address);
+  console.log("voucher: ", data);
+}
+
+
+function getTime(day) {
+  return BigNumber.from(day).mul(86400);
+}
 
 
 async function getData() {
@@ -106,6 +141,8 @@ async function mint(address, to, amount) {
   const tx = await (await erc20.mint(to, (await decimals).mul(amount))).wait();
   console.log("mint: ", tx.transactionHash);
 }
+
+
 
 
 
