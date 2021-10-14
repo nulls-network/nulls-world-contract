@@ -47,8 +47,8 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     Rewards[] public DayRewards;
 
-    event Stake(address indexed account, uint256 amount);
-    event StakeDay(address indexed account, uint256 amount,uint256 key);
+    event Staked(address indexed account, uint256 amount);
+    event StakedDay(address indexed account, uint256 amount,uint256 key);
     event Withdraw(address indexed account, uint256 amount);
     event WithdrawDay(address indexed account, uint256 amount, uint256 key);
     event SetCoefficient(uint256 indexed time, uint256 coefficient);
@@ -104,7 +104,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
         DayVoucher[key] = account;
         TotalSupply += coefficient;
         BalanceOf[msg.sender] += coefficient;
-        emit StakeDay(msg.sender, amount, key);
+        emit StakedDay(msg.sender, amount, key);
     }
 
     function stake(uint256 amount) external nonReentrant onStart {
@@ -123,7 +123,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
         Voucher[msg.sender] = account;
         TotalSupply += amount;
         BalanceOf[msg.sender] += amount;
-        emit Stake(msg.sender, amount);
+        emit Staked(msg.sender, amount);
     }
 
     function notifyRewards() external onlyOwner {

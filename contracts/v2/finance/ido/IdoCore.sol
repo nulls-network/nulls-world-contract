@@ -30,7 +30,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
 
     mapping(address => uint256) ReceivedLast;
 
-    event Stake(address indexed staker, uint256 amount);
+    event Staked(address indexed account, uint256 amount);
 
     event RewardPaid(
         address indexed account,
@@ -89,7 +89,7 @@ contract IdoCore is Ownable, SwapRouter, ReentrancyGuard {
         );
         BalanceOf[msg.sender] += amount;
         TotalSupply += amount;
-        emit Stake(msg.sender, amount);
+        emit Staked(msg.sender, amount);
     }
 
     function addLiquidity() external OnReward onlyOwner {
