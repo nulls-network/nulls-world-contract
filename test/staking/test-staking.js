@@ -127,7 +127,7 @@ async function notifyRewards() {
 async function voucher(account) {
   const { staking, token, owner } = await getData();
   account = account ? account : owner.address;
-  const data = await staking.Voucher(owner.address);
+  const data = await staking.Voucher(account);
   console.log("Voucher: ", data);
 }
 
@@ -145,7 +145,7 @@ async function DayVoucher(key) {
 //总质押金额
 async function totalSupply() {
   const { staking, token, owner } = await getData();
-  const data = await staking.TotalSupply(owner.address);
+  const data = await staking.TotalSupply();
   console.log("TotalSupply: ", data);
 }
 
@@ -153,7 +153,7 @@ async function totalSupply() {
 //总奖励金额 
 async function totalRewards() {
   const { staking, token, owner } = await getData();
-  const data = await staking.TotalRewards(owner.address);
+  const data = await staking.TotalRewards();
   console.log("TotalRewards: ", data);
 }
 
