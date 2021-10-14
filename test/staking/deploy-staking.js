@@ -11,8 +11,8 @@ const addressList = [
 ]
 const startTime = 1630425600; //2021-9-1
 const days = {
-    1209600: 1100,
-    2419200: 1200,
+    1209600: 1100,  //14
+    2419200: 1200,  //28
 }
 const prizePool= "0xBC051ACe271e5A1d6F8d5f2e546a3eb6be77d7b7" ;
 async function main() {

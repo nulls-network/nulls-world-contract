@@ -45,7 +45,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     mapping(uint256 => uint256) Coefficient;
 
-    Rewards[] DayRewards;
+    Rewards[] public DayRewards;
 
     event Stake(address indexed account, uint256 amount);
     event StakeDay(address indexed account, uint256 amount,uint256 key);

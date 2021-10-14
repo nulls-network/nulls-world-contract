@@ -14,9 +14,34 @@ async function main() {
 
   // //领取活期奖励
   // await getReward();
+  //领取定期奖励 (key)，key事件获取
+  // await getDayRewards();
 
-  //领取定期奖励，key事件获取
-  await getDayRewards();
+  //活期提现 (amount = 5000)
+  // await withdraw();
+  //定期提现 (key), key事件获取
+  // await withdrawDay()
+
+
+  // ------查询
+  //查询份额  (account) 
+  // await balanceOf();
+
+  //活期金额 (account)
+  // await voucher();
+  // 定期金额 (key)  , key事件获取
+  // await DayVoucher()
+
+  //总质押金额
+  // await totalSupply();
+  //总奖励金额
+  // await totalRewards();
+
+  //每天奖励 (index = 0) 
+  // await dayRewards();
+
+
+
 
 }
 
@@ -25,26 +50,24 @@ async function main() {
 async function stake(amount = 10000) {
   const { staking, token, owner } = await getData();
   await approve(token.address, staking.address);
-  const decimals = await getDecimals(token.address)
-  const value = decimals.mul(amount);
+  const value = await getErc20Value(token.address, amount);
   const tx = await (await staking.stake(value)).wait();
   console.log("stake: ", tx.transactionHash);
 }
 
 // 定期锁仓 默认14天
-async function stakeDay(day = 14,amount = 10000 ) {
+async function stakeDay(day = 14, amount = 10000) {
   const { staking, token, owner } = await getData();
   await approve(token.address, staking.address);
-  const decimals = await getDecimals(token.address)
-  const value = decimals.mul(amount);
-  const time= getTime(day)
+  const value = await getErc20Value(token.address, amount)
+  const time = getTime(day)
   const tx = await (await staking.stakeDay(time, value)).wait();
   console.log("stakeDay: ", tx.transactionHash);
 }
 
 // 领取定期奖励
 async function getDayRewards(key) {
-  if(!key){
+  if (!key) {
     console.log("key not null");
     return;
   }
@@ -61,19 +84,31 @@ async function getReward() {
 }
 
 // 提现
-async function withdraw(key) {
+async function withdraw(amount = 5000) {
   const { staking, token, owner } = await getData();
   const tx = await (await staking.withdraw()).wait();
   console.log("withdraw: ", tx.transactionHash);
 }
 
+// 定期提现
+async function withdrawDay(key) {
+  if (!key) {
+    console.log("key not null");
+    return;
+  }
+  const { staking, token, owner } = await getData();
+  const tx = await (await staking.withdrawDay(key)).wait();
+  console.log("withdrawDay: ", tx.transactionHash);
+}
+
 
 
 // 默认14天
-async function setCoefficient(time = day14, coefficient = 1100) {
+async function setCoefficient(day = 14, coefficient = 1100) {
+  const time = getTime(day)
   const { staking, token, owner } = await getData();
   const tx = await (await staking.setCoefficient(time, coefficient)).wait();
-  console.log("stake: ", tx.transactionHash);
+  console.log("setCoefficient: ", tx.transactionHash);
 }
 
 
@@ -86,18 +121,64 @@ async function notifyRewards() {
 }
 
 
+// -----------------查询
 
-
-async function voucher(key) {
+//活期金额
+async function voucher(account) {
   const { staking, token, owner } = await getData();
+  account = account ? account : owner.addree;
   const data = await staking.Voucher(owner.address);
-  console.log("voucher: ", data);
+  console.log("Voucher: ", data);
 }
+
+//定期份额
+async function DayVoucher(key) {
+  if (!key) {
+    console.log("key not null");
+    return;
+  }
+  const { staking, token, owner } = await getData();
+  const data = await staking.DayVoucher(key);
+  console.log("DayVoucher: ", data);
+}
+
+//总质押金额
+async function totalSupply() {
+  const { staking, token, owner } = await getData();
+  const data = await staking.TotalSupply(owner.address);
+  console.log("TotalSupply: ", data);
+}
+
+
+//总奖励金额 
+async function totalRewards() {
+  const { staking, token, owner } = await getData();
+  const data = await staking.TotalRewards(owner.address);
+  console.log("TotalRewards: ", data);
+}
+
+//每日奖励
+async function dayRewards(index = 0) {
+  const { staking, token, owner } = await getData();
+  const data = await staking.DayRewards(index);
+  console.log("DayRewards: ", data);
+}
+
+//查询份额
+async function balanceOf(account) {
+  const { staking, token, owner } = await getData();
+  account = account ? account : owner.addree;
+  const data = await staking.BalanceOf(account);
+  console.log("BalanceOf: ", data);
+}
+
+
 
 
 function getTime(day) {
   return BigNumber.from(day).mul(86400);
 }
+
 
 
 async function getData() {
@@ -125,20 +206,20 @@ async function approve(address, to) {
   }
 }
 
-async function getDecimals(address) {
+async function getErc20Value(address, amount) {
   const [owner] = await hre.ethers.getSigners();
   erc20 = await connectContract(erc20Name, address);
   const decimals = await erc20.decimals();
   console.log("decimals: ", decimals);
-  return BigNumber.from(10).pow(decimals);
+  return BigNumber.from(10).pow(decimals).mul(amount);
 }
 
 
+
 async function mint(address, to, amount) {
-  const [owner] = await hre.ethers.getSigners();
   erc20 = await connectContract(erc20Name, address);
-  const decimals = getDecimals(address);
-  const tx = await (await erc20.mint(to, (await decimals).mul(amount))).wait();
+  const value = await getErc20Value(address, amount);
+  const tx = await (await erc20.mint(to, value)).wait();
   console.log("mint: ", tx.transactionHash);
 }
 

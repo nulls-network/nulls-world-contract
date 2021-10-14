@@ -51,9 +51,8 @@ async function main() {
 async function stake(amount = 20000) {
   const { staking, ido, owner } = await getData();
   await approve(staking.address, ido.address);
-  const decimals = await getDecimals(staking.address);
-  const stakingAmount = decimals.mul(amount);
-  const stakeTx = await (await ido.stake(stakingAmount)).wait();
+  const value = await getErc20Value(staking.address, amount);
+  const stakeTx = await (await ido.stake(value)).wait();
   console.log("stake: ", stakeTx.transactionHash);
 }
 
@@ -67,14 +66,14 @@ async function setPeriodFinish(time = 1622394922) {
 }
 
 //设置参数 （minimum：最低认购金额） （管理员）
-async function setData(minimum = 100,target=21000) {
-  const { staking, ido, owner,rewards } = await getData();
+async function setData(minimum = 100, target = 21000) {
+  const { staking, ido, owner, rewards } = await getData();
 
-  const decimals = await getDecimals(staking.address);
-  const rewardsDecimals = await getDecimals(rewards.address);
-  const targetAmount= rewardsDecimals.mul(target);
-  const amount = decimals.mul(minimum);
-  const tx = await (await ido.setData(amount,targetAmount)).wait();
+
+  const stakingValue = await getErc20Value(staking.address, minimum);
+  const rewardsValue = await getErc20Value(rewards.address, target);
+
+  const tx = await (await ido.setData(stakingValue, rewardsValue)).wait();
   console.log("setData: ", tx.transactionHash);
 }
 
@@ -115,10 +114,9 @@ async function swapRewards(amountIn = 1000) {
 async function swapExactTokensForTokens(amountIn, token) {
   const { rewards, staking, ido, owner } = await getData();
   await approve(token, ido.address);
-  const decimals = await getDecimals(token);
-  const amount = decimals.mul(amountIn);
+  const value = getErc20Value(token,amountIn);
   const path = token == staking.address ? [staking.address, rewards.address] : [rewards.address, staking.address];
-  await (await ido.swapExactTokensForTokens(amount, 1, path, owner.address, 1695954712)).wait();
+  await (await ido.swapExactTokensForTokens(value, 1, path, owner.address, 1695954712)).wait();
 }
 
 
@@ -196,13 +194,14 @@ async function approve(address, to) {
   }
 }
 
-async function getDecimals(address) {
+async function getErc20Value(address, amount) {
   const [owner] = await hre.ethers.getSigners();
   erc20 = await connectContract(erc20Name, address);
   const decimals = await erc20.decimals();
-  console.log("decimals: ", decimals)
-  return BigNumber.from(10).pow(decimals);
+  console.log("decimals: ", decimals);
+  return BigNumber.from(10).pow(decimals).mul(amount);
 }
+
 
 
 let connected = {
