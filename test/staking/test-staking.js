@@ -7,9 +7,9 @@ const { address, contractName, erc20Name, stakingToken } = require("./config.jso
 async function main() {
 
   // ----操作
-  // 活期锁仓
+  // 活期锁仓 (amount = 10000) 
   // await stake();
-  // 定期锁仓 默认14天 
+  // 定期锁仓 (day = 14, amount = 10000)
   // await stakeDay();
 
   // //领取活期奖励
@@ -126,7 +126,7 @@ async function notifyRewards() {
 //活期金额
 async function voucher(account) {
   const { staking, token, owner } = await getData();
-  account = account ? account : owner.addree;
+  account = account ? account : owner.address;
   const data = await staking.Voucher(owner.address);
   console.log("Voucher: ", data);
 }
@@ -167,7 +167,7 @@ async function dayRewards(index = 0) {
 //查询份额
 async function balanceOf(account) {
   const { staking, token, owner } = await getData();
-  account = account ? account : owner.addree;
+  account = account ? account : owner.address;
   const data = await staking.BalanceOf(account);
   console.log("BalanceOf: ", data);
 }
