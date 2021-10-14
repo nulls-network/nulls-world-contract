@@ -14,7 +14,7 @@ const days = {
     1209600: 1100,  //14
     2419200: 1200,  //28
 }
-const prizePool= "0xBC051ACe271e5A1d6F8d5f2e546a3eb6be77d7b7" ;
+const prizePool= "0x707355433eaC0c1CCF20A4a1330306Ffec7aC9A3" ;
 async function main() {
 
     const [owner] = await hre.ethers.getSigners();

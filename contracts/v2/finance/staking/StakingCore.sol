@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../interfaces/INullsBigPrizePool.sol";
+import "../../../interfaces/INullsBigPrizePool.sol";
 
 contract StakingCore is Ownable, ReentrancyGuard {
     using Math for uint256;
