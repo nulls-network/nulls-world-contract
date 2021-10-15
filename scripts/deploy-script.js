@@ -46,6 +46,8 @@ const petTransferFee = 30;
 
 const newProjectMinFee = 100 * 1000000;
 
+const bigPoolStartTime = (new Date('2021-10-13 08:00:00').getTime()) / 1000
+
 let rwaJsonData;
 
 async function main() {
@@ -65,6 +67,7 @@ async function main() {
   await ringManager(core,testC20, petT, transferProx)
   
   let mainToken = await nullsToken()
+  await bigPrizePool(testC20, eggM)
   let nullsInvite = await invite()
   await promotion(nullsInvite, eggM, mainToken)
 
@@ -338,6 +341,21 @@ async function promotion(nullsInvite, eggM, mainToken) {
   await ret.wait()
   ret = await obj.contract.setRewardValue(buyer, one, two, three)
   await ret.wait()
+}
+
+async function bigPrizePool(c20, eggM) {
+  const contractAddresskey = "NullsBigPrizePool"
+  const contractName = "NullsBigPrizePool"
+
+  let obj = await connectOrDeployContract(contractName, contractAddresskey, bigPoolStartTime)
+
+  if (obj.flag || c20.flag) {
+    await obj.contract.setTokenAddr(c20.contract.address)
+  }
+
+  if (obj.flag || eggM.flag) {
+    await eggM.contract.setBigPrizePool(obj.contract.address)
+  }
 }
 
 main()

@@ -1,18 +1,19 @@
 const hre = require("hardhat")
-const fs = require("fs")
+const fs = require("fs");
 
-// 设置合伙人测试脚本，使用ht-testnet测试
-// npx hardhat run test/invite/invite-new-partner.js --network ht-testnet
+// 邀请测试脚本,使用ht-testnet-user1测试
+// npx hardhat run test/invite/statistics.js --network ht-testnet-user1
 
 const contractName = "NullsInvite";
 let contractAddr = "";
-const partner = "0x84EAFa138bEcA0D8AEE173D7Bc2Df8B240B0d89e";
+const user = "0x84EAFa138bEcA0D8AEE173D7Bc2Df8B240B0d89e";
 
 async function main() {
 
   await readConfig()
   contract = await connectContract(contractName, contractAddr)
-  await contract.addPartner(partner)
+  ret = await contract.getInviteStatistics(user)
+  console.log(ret)
 }
 
 async function connectContract(contractName, contractAddress) {

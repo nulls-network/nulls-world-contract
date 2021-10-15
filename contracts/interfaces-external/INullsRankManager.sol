@@ -39,7 +39,7 @@ interface INullsRankManager {
         address publicKey
     );
 
-    // 擂台状态更新: itemId、挑战者宠物id、休息结束时间、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值、reuestKey
+    // 擂台状态更新: itemId、挑战者宠物id、休息结束时间、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值、reuestKey、币种
     event RankUpdate(
         uint256 itemId, 
         uint challengerPetId, 
@@ -49,7 +49,8 @@ interface INullsRankManager {
         bytes32 rv, 
         bool isWin, 
         uint value,
-        bytes32 requestKey
+        bytes32 requestKey,
+        address token
     );
 
     // 擂台挑战预获取nonce值: itemId、业务hash、nonce、过期时间、用户

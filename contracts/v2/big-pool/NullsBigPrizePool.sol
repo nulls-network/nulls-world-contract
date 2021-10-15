@@ -41,6 +41,9 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
 
     mapping(address => mapping(uint256 => bool)) public TransferOutRecord;
 
+    mapping(address => uint) public override RewardStartDayIndex;
+
+    uint256 public Balance;
     constructor(uint256 ts) {
         if (ts == 0) {
             ts = block.timestamp;
@@ -59,8 +62,14 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
     {
         uint256 currentDayIndex = _getDayIndex();
 
+        uint dayIndex = RewardStartDayIndex[addr];
+
         // 获取旧额度
         uint8 oldPercent = UserCurrentTransferPercent[addr];
+
+        if (dayIndex == 0) {
+            RewardStartDayIndex[addr] = currentDayIndex + 1;
+        }
 
         // 更新当前总额度
         TotalPercent = TotalPercent - oldPercent + percent;
@@ -96,7 +105,7 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
     }
 
     function _getDayIndex() internal view returns (uint256 idx) {
-        idx = (block.timestamp - BeginTime) / (1 days);
+        idx = (block.timestamp - BeginTime) / (300);
     }
 
     function _getIndexInTrack(uint256[] memory track, uint256 currentIndex)
@@ -198,9 +207,14 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
     }
 
     // 向大奖池汇款
-    function transferIn(address sender, uint256 amount) external override {
-        IERC20(TokenAddr).transferFrom(sender, address(this), amount);
-        _updateStatistics(amount);
+    function transferIn() external override {
+        uint256 newBalance = IERC20(TokenAddr).balanceOf(address(this));
+        _updateStatistics(newBalance - Balance);
+        Balance = newBalance;
+    }
+
+    function updateStatistics() external {
+        _updateStatistics(0);
     }
 
     // 从大奖池转出,按照预先设定的百分比转出
@@ -234,6 +248,7 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
         }
         uint256 amount = (dayTokenAmount * percent) / 100;
         IERC20(TokenAddr).transfer(msg.sender, amount);
+        Balance -= amount;
         TransferOutRecord[msg.sender][dayIndex] = true;
         return (0, amount);
     }

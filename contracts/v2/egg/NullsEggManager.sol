@@ -12,6 +12,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
+import "../../interfaces/INullsBigPrizePool.sol";
+
 contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
     struct BuyToken {
@@ -204,6 +206,8 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
         // transfer to big prize pool
         TransferProxy.erc20TransferFrom(token, sender, BigPrizePool, bigPrizePoolAmount);
+        // // transfer to big prize pool
+        INullsBigPrizePool(BigPrizePool).transferIn();
 
         INullsEggToken( EggToken ).mint( sender , total ) ; 
 

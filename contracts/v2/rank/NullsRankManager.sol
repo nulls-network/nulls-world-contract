@@ -271,19 +271,19 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
                 // 解锁守擂宠物
                 PetLocked[rank.petId] = false ;
 
-                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, 0, rv, true, rank.bonusPool, requestKey);
+                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, 0, rv, true, rank.bonusPool, requestKey, rank.token);
                 rank.bonusPool = 0;     
             } else {
                 // 只能赢走一半
                 uint poolBalance = rank.bonusPool / 2;
                 // 给挑战者转账
                 IERC20( rank.token ).transfer( player, poolBalance );
-                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, poolBalance , rv, true , poolBalance, requestKey);
+                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, poolBalance , rv, true , poolBalance, requestKey, rank.token);
                 rank.bonusPool = poolBalance;
             }
         } else {
             // 庄家获胜
-            emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10, requestKey);
+            emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, rank.bonusPool, rv, false , challengeCapital * RankPoolRatio / 10, requestKey, rank.token);
         }
         rank.total += 1;
         Ranks[itemId] = rank;

@@ -73,7 +73,7 @@ contract NullsInvite is Ownable, INullsInvite {
 
         UserinviteStatistics[current][index] = UserinviteStatistics[current][index] + 1  ; 
         address superior = UserSuperior[current] ;
-        return updateInviteStatistics( superior , index ++ ) ;
+        return updateInviteStatistics( superior , ++index ) ;
     }
 
     function getInviteStatistics( address addr ) public view override returns ( uint32 one , uint32 two , uint32 three , address superior , bool isPartner ) {

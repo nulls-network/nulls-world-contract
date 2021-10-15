@@ -16,6 +16,8 @@ interface INullsBigPrizePool {
 
     function UserCurrentTransferPercent(address user) external view returns (uint8);
 
+    function RewardStartDayIndex(address contractAddr) external view returns (uint);
+
     function getUserDayTransferPercent(address user, uint256 dayIndex)
         external
         view
@@ -33,7 +35,7 @@ interface INullsBigPrizePool {
     function setTransferPercent(address addr, uint8 percent) external;
 
     // 往奖池里汇款
-    function transferIn(address sender, uint256 amount) external;
+    function transferIn() external;
 
     // 从奖池里取款
     function transferOut(uint256 dayIndex)
