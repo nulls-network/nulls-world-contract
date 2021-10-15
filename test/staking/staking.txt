@@ -10,9 +10,8 @@ staking合约地址: 0x69d97281763670D794ce9C5a18f4a471A1768ECF
 我的质押总额：BalanceOf(address)
 所占份额 ： 我的质押总额 / 质押总额
 
---------------
-我的质押（活期）：Voucher(address)
-我的质押（定期）: DayVoucher(key)   //key通过后台接口获取
+--------------   
+我的质押: Voucher(time,address)    //time为0则活期
 
 我的质押金额: voucher.amount
 份额: voucher.total / 质押总额
@@ -25,14 +24,11 @@ staking合约地址: 0x69d97281763670D794ce9C5a18f4a471A1768ECF
 
 
 --操作接口
-活期质押：stake(amount)
-定期质押：stakeDay(day,amount)
+质押：stake(time,amount)   //time为0则活期
 
-领取活期奖励：getReward()
-领取定期奖励：getDayRewards(key)  //key通过后台接口获取
+领取奖励：getReward(time)   //time为0则活期
 
-活期解押：withdraw(amount)
-定期解押：withdrawDay(key)  //key通过后台接口获取
+解押：withdraw(time,amount) //time为0则活期
 
 
 ---后台接口

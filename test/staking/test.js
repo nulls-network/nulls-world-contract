@@ -5,32 +5,27 @@ const { address, contractName, erc20Name, stakingToken } = require("./config.jso
 
 // npx hardhat run test/staking/test.js
 async function main() {
+  /**
+   * day=0 则活期 其他则定期：默认配置[14，28]
+   */
 
   // ----操作
-  // 活期锁仓 (amount = 10000) 
-  await stake();
-  // 定期锁仓 (day = 14, amount = 10000)
-  await stakeDay();
+  // 锁仓 ( day =0 ,amount = 10000)   
+  // await stake();
 
-  // //领取活期奖励
+  // 领取奖励 (day = 0)
   // await getReward();
-  //领取定期奖励 (key)，key事件获取
-  // await getDayRewards();
 
-  //活期提现 (amount = 5000)
+  //活期提现 day = 0, amount = 5000
   // await withdraw();
-  //定期提现 (key), key事件获取
-  // await withdrawDay()
-
 
   // ------查询
   //查询份额  (account) 
   // await balanceOf();
 
   //活期金额 (account)
-  // await voucher();
+  await voucher();
   // 定期金额 (key)  , key事件获取
-  // await DayVoucher()
 
   //总质押金额
   // await totalSupply();
@@ -47,63 +42,39 @@ async function main() {
 
 
 // 锁仓
-async function stake(amount = 10000) {
+async function stake(day = 0, amount = 10000) {
   const { staking, token, owner } = await getData();
   await approve(token.address, staking.address);
   const value = await getErc20Value(token.address, amount);
-  const tx = await (await staking.stake(value)).wait();
+  const time = getTime(day)
+  const tx = await (await staking.stake(time, value)).wait();
   console.log("stake: ", tx.transactionHash);
 }
 
-// 定期锁仓 默认14天
-async function stakeDay(day = 14, amount = 10000) {
+
+
+// 领取奖励
+async function getReward(day = 0) {
   const { staking, token, owner } = await getData();
-  await approve(token.address, staking.address);
-  const value = await getErc20Value(token.address, amount)
   const time = getTime(day)
-  const tx = await (await staking.stakeDay(time, value)).wait();
-  console.log("stakeDay: ", tx.transactionHash);
-}
-
-// 领取定期奖励
-async function getDayRewards(key) {
-  if (!key) {
-    console.log("key not null");
-    return;
-  }
-  const { staking, token, owner } = await getData();
-  const tx = await (await staking.getDayRewards(key)).wait();
-  console.log("getDayRewards: ", tx.transactionHash);
-}
-
-// 领取活期奖励
-async function getReward() {
-  const { staking, token, owner } = await getData();
-  const tx = await (await staking.getReward()).wait();
+  const tx = await (await staking.getReward(time)).wait();
   console.log("getReward: ", tx.transactionHash);
 }
 
 // 提现
-async function withdraw(amount = 5000) {
+async function withdraw(day = 0, amount = 5000) {
   const { staking, token, owner } = await getData();
-  const tx = await (await staking.withdraw()).wait();
+  const time = getTime(day)
+  const value = await getErc20Value(token.address, amount);
+  const tx = await (await staking.withdraw(time, value)).wait();
   console.log("withdraw: ", tx.transactionHash);
 }
 
-// 定期提现
-async function withdrawDay(key) {
-  if (!key) {
-    console.log("key not null");
-    return;
-  }
-  const { staking, token, owner } = await getData();
-  const tx = await (await staking.withdrawDay(key)).wait();
-  console.log("withdrawDay: ", tx.transactionHash);
-}
 
 
 
-// 默认14天
+
+// 设置定期数据
 async function setCoefficient(day = 14, coefficient = 1100) {
   const time = getTime(day)
   const { staking, token, owner } = await getData();
@@ -123,24 +94,16 @@ async function notifyRewards() {
 
 // -----------------查询
 
-//活期金额
-async function voucher(account) {
+//查询质押数据
+async function voucher(day = 0, account) {
+  const time = getTime(day)
   const { staking, token, owner } = await getData();
   account = account ? account : owner.address;
-  const data = await staking.Voucher(account);
+  const data = await staking.Voucher(time, account);
   console.log("Voucher: ", data);
 }
 
-//定期份额
-async function DayVoucher(key) {
-  if (!key) {
-    console.log("key not null");
-    return;
-  }
-  const { staking, token, owner } = await getData();
-  const data = await staking.DayVoucher(key);
-  console.log("DayVoucher: ", data);
-}
+
 
 //总质押金额
 async function totalSupply() {
