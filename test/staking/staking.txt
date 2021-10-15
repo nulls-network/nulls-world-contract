@@ -1,5 +1,5 @@
 
-staking合约地址: 0xC182a5B84F391Ce85fA16fF008A3aed5CAb76aEd
+staking合约地址: 0x69d97281763670D794ce9C5a18f4a471A1768ECF
 
 ----查询接口
 锁仓币种地址：StakingToken
@@ -12,7 +12,7 @@ staking合约地址: 0xC182a5B84F391Ce85fA16fF008A3aed5CAb76aEd
 
 --------------
 我的质押（活期）：Voucher(address)
-我的质押（按天）: DayVoucher(key)   //key通过后台接口获取
+我的质押（定期）: DayVoucher(key)   //key通过后台接口获取
 
 我的质押金额: voucher.amount
 份额: voucher.total / 质押总额
@@ -33,3 +33,18 @@ staking合约地址: 0xC182a5B84F391Ce85fA16fF008A3aed5CAb76aEd
 
 活期解押：withdraw(amount)
 定期解押：withdrawDay(key)  //key通过后台接口获取
+
+
+---后台接口
+url:  https://nulls-world-api-sandy.vercel.app
+
+event : [
+    Staked // 锁仓
+    Withdraw //提现
+    Reward //领取奖励
+]
+
+交易记录: /api/staking/getTransaction  参数(address,event)
+质押天数：/api/staking/getCoefficient
+
+

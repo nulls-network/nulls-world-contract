@@ -2,38 +2,24 @@ const { BigNumber } = require("@ethersproject/bignumber");
 const hre = require("hardhat")
 const fs = require("fs");
 const { erc20Name, contractName } = require("./config.json");
-const { addAbortSignal } = require("stream");
 
-// npx hardhat clean && npx hardhat run test/staking/deploy-staking.js
+// npx hardhat clean && npx hardhat run test/lpStaking/deploy.js
 const addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
     "0x84f09d4688c683e2Bb84Cb36CdeC22A288eF99de",
 ]
-const startTime = 1630425600; //2021-9-1
-const days = {
-    1209600: 1100,  //14
-    2419200: 1200,  //28
-}
-const prizePool= "0x707355433eaC0c1CCF20A4a1330306Ffec7aC9A3" ;
 async function main() {
-
     const [owner] = await hre.ethers.getSigners();
     console.log("deploy start");
     const stakingToken = await deployErc20(["stakingToken", "USDC", 6], true, true);
-    const StakingCore = await hre.ethers.getContractFactory(contractName);
-    const constructor = [startTime, stakingToken.address, prizePool];
-    const staking = await StakingCore.deploy(...constructor);
-    await staking.deployed();
-    console.log("staking address>>", staking.address);
-    await setCoefficient(staking);
-    update(staking.address, stakingToken.address);
-    await verify(staking.address, constructor)
-}
 
-async function setCoefficient(staking) {
-    for (const day in days) {
-        const tx = await (await staking.setCoefficient(day, days[day])).wait();
-    }
+    const Contract = await hre.ethers.getContractFactory(contractName);
+    const constructor = [];
+    const contract = await Contract.deploy(...constructor);
+    await contract.deployed();
+    console.log("contract address>>", contract.address);
+    update(contract.address, stakingToken.address);
+    await verify(contract.address, constructor)
 }
 
 

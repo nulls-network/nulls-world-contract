@@ -3,7 +3,7 @@ const hre = require("hardhat")
 const fs = require("fs");
 const { erc20Name, contractName } = require("./config.json");
 
-//  npx hardhat clean && npx hardhat run test/ido/deploy-ido.js
+//  npx hardhat clean && npx hardhat run test/ido/deploy.js
 
 let addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",

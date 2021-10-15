@@ -3,7 +3,7 @@ const hre = require("hardhat")
 const { address, contractName, erc20Name, stakingToken, rewardsToken } = require("./config.json");
 
 
-// npx hardhat run test/ido/test-ido.js 
+// npx hardhat run test/ido/test.js 
 
 async function main() {
 

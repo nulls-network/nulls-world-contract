@@ -1,6 +1,6 @@
 {
-    "contractName": "StakingCore",
+    "contractName": "LPStaking",
     "erc20Name": "IdoToken",
-    "address": "0xf24dBc088136E21DcfED8dA07c6AA957D4A6B9d5",
+    "address": "0x69d97281763670D794ce9C5a18f4a471A1768ECF",
     "stakingToken": "0x3357a33F5e654849088985DC7E129fB68F2D68BC"
 }

@@ -3,14 +3,14 @@ const hre = require("hardhat")
 const { address, contractName, erc20Name, stakingToken } = require("./config.json");
 
 
-// npx hardhat run test/staking/test-staking.js
+// npx hardhat run test/staking/test.js
 async function main() {
 
   // ----操作
   // 活期锁仓 (amount = 10000) 
-  // await stake();
+  await stake();
   // 定期锁仓 (day = 14, amount = 10000)
-  // await stakeDay();
+  await stakeDay();
 
   // //领取活期奖励
   // await getReward();

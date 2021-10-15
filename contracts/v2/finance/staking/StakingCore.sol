@@ -47,10 +47,9 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     Rewards[] public DayRewards;
 
-    event Staked(address indexed account, uint256 amount);
-    event StakedDay(address indexed account, uint256 amount,uint256 key);
-    event Withdraw(address indexed account, uint256 amount);
-    event WithdrawDay(address indexed account, uint256 amount, uint256 key);
+    event Staked(address indexed account, uint256 amount,uint256 key);
+    event Withdraw(address indexed account, uint256 amount,uint256 key);
+    event Reward(address indexed account, uint256 amount, uint256 key );
     event SetCoefficient(uint256 indexed time, uint256 coefficient);
     event NotifyRewards(uint256 indexed index, uint256 rewards,uint256 totalStaking);
     constructor(
@@ -104,7 +103,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
         DayVoucher[key] = account;
         TotalSupply += coefficient;
         BalanceOf[msg.sender] += coefficient;
-        emit StakedDay(msg.sender, amount, key);
+        emit Staked(msg.sender, amount, key);
     }
 
     function stake(uint256 amount) external nonReentrant onStart {
@@ -123,20 +122,18 @@ contract StakingCore is Ownable, ReentrancyGuard {
         Voucher[msg.sender] = account;
         TotalSupply += amount;
         BalanceOf[msg.sender] += amount;
-        emit Staked(msg.sender, amount);
+        emit Staked(msg.sender, amount,0);
     }
 
     function notifyRewards() external onlyOwner {
         if(PrizePoolIndex == 0){
-            //todo update
-            // PrizePoolIndex=INullsBigPrizePool(PrizePool);
+            PrizePoolIndex = PrizePool.RewardStartDayIndex(address(this))-1;
         }
         uint256 index = PrizePoolIndex;
         uint256 len = Math.min(index + 10, PrizePool.DayIndex());
         require(index < len, "No rewards available");
         for (; index < len; index++) {
-            (uint8 code,uint256 amount) = PrizePool.transferOut(index);
-            //todo code error
+            uint256 amount = PrizePool.transferOut(index);
             Rewards memory rewards = Rewards({
                 amount: amount,
                 totalStaking: TotalSupply
@@ -151,14 +148,14 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     function getDayRewards(uint256 key) external nonReentrant {
         Account memory account = DayVoucher[key];
-        uint256 start = _reward(account);
+        uint256 start = _reward(account,key);
         account.start = start;
         DayVoucher[key] = account;
     }
 
     function getReward() external nonReentrant {
         Account memory account = Voucher[msg.sender];
-        uint256 start = _reward(account);
+        uint256 start = _reward(account,0);
         account.start = start;
 
         Voucher[msg.sender] = account;
@@ -174,7 +171,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
         account.total -= amount;
         Voucher[msg.sender] = account;
         IERC20(StakingToken).transfer(msg.sender, amount);
-        emit Withdraw(msg.sender, amount);
+        emit Withdraw(msg.sender, amount,0);
     }
 
     function withdrawDay(uint256 key) external nonReentrant {
@@ -189,10 +186,10 @@ contract StakingCore is Ownable, ReentrancyGuard {
         account.total = 0;
         DayVoucher[key] = account;
         IERC20(StakingToken).transfer(account.account, amount);
-        emit WithdrawDay(msg.sender, amount,key);
+        emit Withdraw(msg.sender, amount,key);
     }
 
-    function _reward(Account memory account) internal returns (uint256) {
+    function _reward(Account memory account,uint256 key) internal returns (uint256) {
         require(account.account == msg.sender, "The reward does not belong to you");
         uint256 len = Math.min(DayRewards.length, account.start + 20);
         uint256 start = account.start;
@@ -210,6 +207,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
             IERC20(RewardsToken).transfer(account.account, amount),
             "transfer error"
         );
+        emit Reward(account.account,amount,key);
         return start;
     }
 
