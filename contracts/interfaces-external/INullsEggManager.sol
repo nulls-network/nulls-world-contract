@@ -33,6 +33,13 @@ interface INullsEggManager {
         address pubkey
     );
 
+    event BuyEgg(
+        address user,
+        uint number,
+        uint payAmount,
+        address token
+    );
+
     /*
      * 设置核心合约
      *

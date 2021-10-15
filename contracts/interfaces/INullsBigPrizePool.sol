@@ -2,6 +2,14 @@
 pragma solidity ^0.8.0;
 
 interface INullsBigPrizePool {
+
+    event RewardReceived(
+        address addr,
+        uint amount,
+        uint dayIndex,
+        address token
+    );
+
     function TokenAddr() external view returns (address);
 
     function BeginTime() external view returns (uint256);
@@ -40,5 +48,5 @@ interface INullsBigPrizePool {
     // 从奖池里取款
     function transferOut(uint256 dayIndex)
         external
-        returns (uint8 code, uint256 actualAmount);
+        returns (uint256 actualAmount);
 }

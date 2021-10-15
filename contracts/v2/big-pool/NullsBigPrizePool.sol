@@ -218,24 +218,19 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
     }
 
     // 从大奖池转出,按照预先设定的百分比转出
-    // code: 状态码，0正确，1未到领取时间，2已领取，3无权领取，4奖池为空
     // actualAmount: 实际领取的数量
     function transferOut(uint256 dayIndex)
         external
         override
-        returns (uint8 code, uint256 actualAmount)
+        returns (uint256 actualAmount)
     {
-        if (dayIndex >= _getDayIndex()) {
-            return (1, 0);
-        }
-
-        if (TransferOutRecord[msg.sender][dayIndex] == true) {
-            return (2, 0);
-        }
+        require(dayIndex < _getDayIndex(), "NullsBigPrizePool/Must be receive by next day.");
+        
+        require(TransferOutRecord[msg.sender][dayIndex] == false, "NullsBigPrizePool/Do not receive repeatedly.");
 
         uint8 percent = _getUserDayTransferPercent(msg.sender, dayIndex);
         if (percent == 0) {
-            return (3, 0);
+            return 0;
         }
 
         uint256 dayTokenAmount = DayTokenAmount[dayIndex];
@@ -243,13 +238,14 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
             _updateStatistics(0);
             dayTokenAmount = DayTokenAmount[dayIndex];
             if (dayTokenAmount == 0) {
-                return (4, 0);
+                return 0;
             }
         }
         uint256 amount = (dayTokenAmount * percent) / 100;
         IERC20(TokenAddr).transfer(msg.sender, amount);
         Balance -= amount;
         TransferOutRecord[msg.sender][dayIndex] = true;
-        return (0, amount);
+        emit RewardReceived(msg.sender, amount, dayIndex, TokenAddr);
+        return amount;
     }
 }

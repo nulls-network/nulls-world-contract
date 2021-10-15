@@ -217,6 +217,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             // IERC20( token ).approve( address(this) , amount );
             INullsAfterBuyEgg( BuyTokenAfter ).doAfter(sender, total, token, amount );
         }
+        emit BuyEgg(sender, total, amount, token);
     } 
 
     function openMultiple(
