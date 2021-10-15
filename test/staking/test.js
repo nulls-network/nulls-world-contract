@@ -11,7 +11,9 @@ async function main() {
 
   // ----操作
   // 锁仓 ( day =0 ,amount = 10000)   
-  // await stake();
+  await stake();
+
+  await test();
 
   // 领取奖励 (day = 0)
   // await getReward();
@@ -24,7 +26,7 @@ async function main() {
   // await balanceOf();
 
   //活期金额 (account)
-  await voucher();
+  // await voucher();
   // 定期金额 (key)  , key事件获取
 
   //总质押金额
@@ -33,11 +35,18 @@ async function main() {
   // await totalRewards();
 
   //每天奖励 (index = 0) 
-  // await dayRewards();
+  await bonusRecord();
 
 
 
 
+}
+
+async function test(amount=10000){
+  const { staking, token, owner } = await getData();
+  const value = await getErc20Value(token.address, amount);
+  const tx = await (await staking.test(token.address, value)).wait();
+  console.log("test: ", tx.transactionHash);
 }
 
 
@@ -121,10 +130,10 @@ async function totalRewards() {
 }
 
 //每日奖励
-async function dayRewards(index = 0) {
+async function bonusRecord(index = 0) {
   const { staking, token, owner } = await getData();
-  const data = await staking.DayRewards(index);
-  console.log("DayRewards: ", data);
+  const data = await staking.BonusRecord(index);
+  console.log("BonusRecord: ", data);
 }
 
 //查询份额

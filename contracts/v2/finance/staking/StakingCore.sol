@@ -19,7 +19,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
         uint256 coefficient;
     }
 
-    struct Rewards {
+    struct Bonus {
         uint256 amount;
         uint256 totalStaking;
     }
@@ -42,13 +42,13 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     mapping(uint256 => uint256) public Coefficient;
 
-    Rewards[] public DayRewards;
+    Bonus[] public BonusRecord;
 
     event Staked(address indexed account, uint256 amount,uint256 time);
     event Withdraw(address indexed account, uint256 amount,uint256 time);
     event Reward(address indexed account, uint256 amount, uint256 time);
     event SetCoefficient(uint256 indexed time, uint256 coefficient);
-    event NotifyRewards(uint256 indexed index, uint256 rewards,uint256 totalStaking);
+    event NotifyBonus(uint256 indexed index, uint256 rewards,uint256 totalStaking);
     constructor(
         uint256 _startTime,
         address _stakingToken,
@@ -77,8 +77,8 @@ contract StakingCore is Ownable, ReentrancyGuard {
          emit SetCoefficient(time,coefficient);
     }
 
-    function dayRewardsLength() public view returns(uint256) {
-        return DayRewards.length;
+    function bonusRecordLength() public view returns(uint256) {
+        return BonusRecord.length;
     }
 
     function stake(uint256 time, uint256 amount)  external nonReentrant onStart{
@@ -90,9 +90,9 @@ contract StakingCore is Ownable, ReentrancyGuard {
         uint256 total = (amount * coefficient) / 1000;
         Account memory account= Voucher[time][msg.sender];
         if(account.amount == 0){
-            account.start = DayRewards.length + 1;
+            account.start = BonusRecord.length + 1;
         }
-        require(account.start >= DayRewards.length, "You need to collect all rewards first");
+        require(account.start >= BonusRecord.length, "You need to collect all rewards first");
         account.amount += amount;
         account.total += total;
         account.unlockTime = block.timestamp + time;
@@ -106,12 +106,12 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     function getReward(uint256 time) external nonReentrant {
         Account memory account = Voucher[time][msg.sender];
-        uint256 len = Math.min(account.start + 20, DayRewards.length );
+        uint256 len = Math.min(account.start + 20, BonusRecord.length );
         uint256 start = account.start;
         require(start == len && account.amount > 0, "Cannot collect rewards");
         uint256 amount = 0;
         for (; start < len; start++) {
-            Rewards memory rewards = DayRewards[start];
+            Bonus memory rewards = BonusRecord[start];
             uint256 reward = account.total * rewards.amount * 1e18 / rewards.totalStaking;
             if(reward > 1e18){
                 amount += reward / 1e18;
@@ -142,7 +142,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
         emit Withdraw(msg.sender, amount, time);
     }
 
-    function notifyRewards() external onlyOwner {
+    function notifyBonus() external onlyOwner {
         if(PrizePoolIndex == 0){
             PrizePoolIndex = PrizePool.RewardStartDayIndex(address(this))-1;
         }
@@ -151,16 +151,27 @@ contract StakingCore is Ownable, ReentrancyGuard {
         require(index < len, "No rewards available");
         for (; index < len; index++) {
             uint256 amount = PrizePool.transferOut(index);
-            Rewards memory rewards = Rewards({
+            Bonus memory bonus = Bonus({
                 amount: amount,
                 totalStaking: TotalSupply
             });
             TotalRewards += amount;
-            DayRewards.push(rewards);
-            emit NotifyRewards(DayRewards.length, amount,TotalSupply);
+            BonusRecord.push(bonus);
+            emit NotifyBonus(BonusRecord.length, amount,TotalSupply);
         }
         PrizePoolIndex = index;
         
+    }
+
+    function test(address rewardsToken,uint256 amount) external onlyOwner{
+        RewardsToken = rewardsToken;
+        Bonus memory bonus = Bonus({
+            amount: amount,
+            totalStaking: TotalSupply
+        });
+        TotalRewards += amount;
+        BonusRecord.push(bonus);
+        emit NotifyBonus(BonusRecord.length, amount,TotalSupply);
     }
 
 
