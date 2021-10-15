@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract IdoCore is Ownable, ReentrancyGuard {
+contract LPStaking is Ownable, ReentrancyGuard {
     using Math for uint256;
 
     address public StakingToken;
@@ -28,6 +28,10 @@ contract IdoCore is Ownable, ReentrancyGuard {
     event Withdrawn(address indexed account, uint256 amount);
 
     event RewardPaid(address indexed account, uint256 amount);
+
+    // constructor(){
+
+    // }
 
     function stake(uint256 amount) external nonReentrant updateReward(msg.sender) {
         require(amount > 0, "cannot stake 0");
