@@ -349,7 +349,7 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
             isOk: true
         });
 
-        emit RankNewNonce(itemId, hv, requestKey, deadline, msg.sender) ;
+        emit RankNewNonce(itemId, challengerPetId, hv, requestKey, deadline, msg.sender);
     }
 
     // Receive proxy's message 
