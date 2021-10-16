@@ -1,50 +1,51 @@
 
-staking合约地址: 0x69d97281763670D794ce9C5a18f4a471A1768ECF
+staking合约地址： 0x9B035aeed5ff31e0d25485515919cB89833Ef799
 
+
+  /**
+   * index 默认配置 0：活期  1：14天 2：28天
+   */
 ----查询接口
+查询质押长度：interestRecordLength
+查询质押天数： InterestRecord(index);
+
 锁仓币种地址：StakingToken
-奖励币种地址：RewardsToken   //要更新abi 旧接口为rewardsToken
+奖励币种地址：RewardsToken   
 
 奖池总额：TotalRewards
 质押总额：TotalSupply
 我的质押总额：BalanceOf(address)
 所占份额 ： 我的质押总额 / 质押总额
 
---------------
-我的质押（活期）：Voucher(address)
-我的质押（定期）: DayVoucher(key)   //key通过后台接口获取
+--------------   
+我的质押： Voucher(address,index)    // 修改
 
-我的质押金额: voucher.amount
-份额: voucher.total / 质押总额
-可领取分红: 
-解押剩余时间: voucher.unlockTime (时间戳)
+我的质押金额： voucher.amount
+份额： voucher.total / 质押总额
+可领取分红： earned(address,index);
+解押剩余时间： voucher.unlockTime (时间戳)
 
 -------------
-最后奖励下标：dayRewardsLength
 
 
 
 --操作接口
-活期质押：stake(amount)
-定期质押：stakeDay(day,amount)
+质押： stake(index,amount) 
 
-领取活期奖励：getReward()
-领取定期奖励：getDayRewards(key)  //key通过后台接口获取
+领取奖励： getReward(index)   
 
-活期解押：withdraw(amount)
-定期解押：withdrawDay(key)  //key通过后台接口获取
+解押： withdraw(index,amount) 
 
 
 ---后台接口
-url:  https://nulls-world-api-sandy.vercel.app
+url：  https://nulls-world-api-sandy.vercel.app
 
-event : [
+event ： [
     Staked // 锁仓
     Withdraw //提现
     Reward //领取奖励
 ]
 
-交易记录: /api/staking/getTransaction  参数(address,event)
-质押天数：/api/staking/getCoefficient
+交易记录： /api/staking/getTransaction  参数(address,event)
 
 

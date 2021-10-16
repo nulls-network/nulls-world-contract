@@ -4,17 +4,17 @@ const fs = require("fs");
 const { erc20Name, contractName } = require("./config.json");
 const { addAbortSignal } = require("stream");
 
-// npx hardhat clean && npx hardhat run test/staking/deploy.js
+// npx hardhat clean; npx hardhat run test/staking/deploy.js
 const addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
     "0x84f09d4688c683e2Bb84Cb36CdeC22A288eF99de",
 ]
 const startTime = 1630425600; //2021-9-1
 const days = {
-    1209600: 1100,  //14
-    2419200: 1200,  //28
+    14: 1100,  
+    28: 1200, 
 }
-const prizePool= "0x707355433eaC0c1CCF20A4a1330306Ffec7aC9A3" ;
+const prizePool = "0xD5Df05F5E8C9D3C356697A2BE64850d948905C48";
 async function main() {
 
     const [owner] = await hre.ethers.getSigners();
@@ -25,16 +25,23 @@ async function main() {
     const staking = await StakingCore.deploy(...constructor);
     await staking.deployed();
     console.log("staking address>>", staking.address);
-    await setCoefficient(staking);
+    await notifyInterest(staking);
     update(staking.address, stakingToken.address);
     await verify(staking.address, constructor)
 }
 
-async function setCoefficient(staking) {
+async function notifyInterest(staking) {
     for (const day in days) {
-        const tx = await (await staking.setCoefficient(day, days[day])).wait();
+        const rate = days[day];
+        const time = getTime(day)
+        const index = await staking.interestRecordLength();
+        const tx = await (await staking.notifyInterest(index, time, rate, true)).wait();
     }
 }
+
+function getTime(day) {
+    return BigNumber.from(day).mul(86400);
+  }
 
 
 async function deployErc20(constructor, noOverride, mint) {

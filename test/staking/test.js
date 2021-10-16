@@ -6,31 +6,33 @@ const { address, contractName, erc20Name, stakingToken } = require("./config.jso
 // npx hardhat run test/staking/test.js
 async function main() {
 
-  // ----操作
-  // 活期锁仓 (amount = 10000) 
-  await stake();
-  // 定期锁仓 (day = 14, amount = 10000)
-  await stakeDay();
 
-  // //领取活期奖励
+  /**
+   * 操作   
+   */
+  // 锁仓 ( index =0 ,amount = 10000)
+  // 默认配置 0：活期  1：14天 2：28天
+  // await stake();
+
+  // todo 测试方法 添加奖励 正式会删除
+  await test();
+
+  //最新奖励下标
+  await bonusRecordLength();
+
+  await earned();
+  // 领取奖励 (day = 0)
   // await getReward();
-  //领取定期奖励 (key)，key事件获取
-  // await getDayRewards();
 
-  //活期提现 (amount = 5000)
+  //活期提现 day = 0, amount = 5000
   // await withdraw();
-  //定期提现 (key), key事件获取
-  // await withdrawDay()
-
 
   // ------查询
   //查询份额  (account) 
   // await balanceOf();
 
-  //活期金额 (account)
+  // 存款金额 (account)
   // await voucher();
-  // 定期金额 (key)  , key事件获取
-  // await DayVoucher()
 
   //总质押金额
   // await totalSupply();
@@ -38,109 +40,80 @@ async function main() {
   // await totalRewards();
 
   //每天奖励 (index = 0) 
-  // await dayRewards();
+  // await bonusRecord();
 
 
 
 
+}
+
+async function test(amount=10000){
+  const { staking, token, owner } = await getData();
+  const value = await getErc20Value(token.address, amount);
+  const tx = await (await staking.test(token.address, value)).wait();
+  console.log("test: ", tx.transactionHash);
 }
 
 
 // 锁仓
-async function stake(amount = 10000) {
+async function stake(index = 0, amount = 10000) {
   const { staking, token, owner } = await getData();
   await approve(token.address, staking.address);
   const value = await getErc20Value(token.address, amount);
-  const tx = await (await staking.stake(value)).wait();
+  const tx = await (await staking.stake(index, value)).wait();
   console.log("stake: ", tx.transactionHash);
 }
 
-// 定期锁仓 默认14天
-async function stakeDay(day = 14, amount = 10000) {
-  const { staking, token, owner } = await getData();
-  await approve(token.address, staking.address);
-  const value = await getErc20Value(token.address, amount)
-  const time = getTime(day)
-  const tx = await (await staking.stakeDay(time, value)).wait();
-  console.log("stakeDay: ", tx.transactionHash);
-}
 
-// 领取定期奖励
-async function getDayRewards(key) {
-  if (!key) {
-    console.log("key not null");
-    return;
-  }
-  const { staking, token, owner } = await getData();
-  const tx = await (await staking.getDayRewards(key)).wait();
-  console.log("getDayRewards: ", tx.transactionHash);
-}
 
-// 领取活期奖励
-async function getReward() {
+// 领取奖励
+async function getReward(inde = 0) {
   const { staking, token, owner } = await getData();
-  const tx = await (await staking.getReward()).wait();
+  const tx = await (await staking.getReward(inde)).wait();
   console.log("getReward: ", tx.transactionHash);
 }
 
 // 提现
-async function withdraw(amount = 5000) {
+async function withdraw(inde = 0, amount = 5000) {
   const { staking, token, owner } = await getData();
-  const tx = await (await staking.withdraw()).wait();
+  const value = await getErc20Value(token.address, amount);
+  const tx = await (await staking.withdraw(inde, value)).wait();
   console.log("withdraw: ", tx.transactionHash);
 }
 
-// 定期提现
-async function withdrawDay(key) {
-  if (!key) {
-    console.log("key not null");
-    return;
-  }
-  const { staking, token, owner } = await getData();
-  const tx = await (await staking.withdrawDay(key)).wait();
-  console.log("withdrawDay: ", tx.transactionHash);
-}
 
 
 
-// 默认14天
-async function setCoefficient(day = 14, coefficient = 1100) {
-  const time = getTime(day)
-  const { staking, token, owner } = await getData();
-  const tx = await (await staking.setCoefficient(time, coefficient)).wait();
-  console.log("setCoefficient: ", tx.transactionHash);
+
+// 设置定期数据
+async function notifyInterest(index=99999, day, rate, open=true) {
+
+  // const { staking, token, owner } = await getData();
+  // const tx = await (await staking.setCoefficient(time, coefficient)).wait();
+  // console.log("setCoefficient: ", tx.transactionHash);
 }
 
 
 
 // 更新每日奖励
-async function notifyRewards() {
+async function notifyBonus() {
   const { staking, token, owner } = await getData();
-  const tx = await (await staking.notifyRewards()).wait();
+  const tx = await (await staking.notifyBonus()).wait();
   console.log("notifyRewards: ", tx.transactionHash);
 }
 
 
 // -----------------查询
 
-//活期金额
-async function voucher(account) {
+//查询质押数据
+async function voucher(account, index = 0, ) {
   const { staking, token, owner } = await getData();
   account = account ? account : owner.address;
-  const data = await staking.Voucher(account);
+  const data = await staking.Voucher(account, index);
   console.log("Voucher: ", data);
 }
 
-//定期份额
-async function DayVoucher(key) {
-  if (!key) {
-    console.log("key not null");
-    return;
-  }
-  const { staking, token, owner } = await getData();
-  const data = await staking.DayVoucher(key);
-  console.log("DayVoucher: ", data);
-}
+
 
 //总质押金额
 async function totalSupply() {
@@ -158,10 +131,17 @@ async function totalRewards() {
 }
 
 //每日奖励
-async function dayRewards(index = 0) {
+async function bonusRecord(index = 0) {
   const { staking, token, owner } = await getData();
-  const data = await staking.DayRewards(index);
-  console.log("DayRewards: ", data);
+  const data = await staking.BonusRecord(index);
+  console.log("BonusRecord: ", data);
+}
+
+//最新奖励天数
+async function bonusRecordLength(index = 0) {
+  const { staking, token, owner } = await getData();
+  const data = await staking.bonusRecordLength();
+  console.log("bonusRecordLength: ", data);
 }
 
 //查询份额
@@ -172,6 +152,13 @@ async function balanceOf(account) {
   console.log("BalanceOf: ", data);
 }
 
+
+async function earned(account,index=0){
+  const { staking, token, owner } = await getData();
+  account = account ? account : owner.address;
+  const data = await staking.earned(account,index);
+  console.log("earned: ", data);
+}
 
 
 
@@ -210,7 +197,6 @@ async function getErc20Value(address, amount) {
   const [owner] = await hre.ethers.getSigners();
   erc20 = await connectContract(erc20Name, address);
   const decimals = await erc20.decimals();
-  console.log("decimals: ", decimals);
   return BigNumber.from(10).pow(decimals).mul(amount);
 }
 

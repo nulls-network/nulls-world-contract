@@ -3,27 +3,31 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../../interfaces/INullsBigPrizePool.sol";
 
 contract StakingCore is Ownable, ReentrancyGuard {
     using Math for uint256;
-    using Counters for Counters.Counter;
-    Counters.Counter private IdCounter;
+
     //stakingAccount
     struct Account {
-        address account;
         uint256 amount;
         uint256 total;
         uint256 start;
         uint256 unlockTime;
+        uint256 rate;
     }
 
-    struct Rewards {
+    struct Bonus {
         uint256 amount;
         uint256 totalStaking;
+    }
+
+    struct Interest {
+        uint256 time;
+        uint256 rate;
+        bool open;
     }
 
     INullsBigPrizePool public PrizePool;
@@ -39,19 +43,17 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     mapping(address => uint256) public BalanceOf;
 
-    mapping(address => Account) public Voucher;
+    mapping(address => mapping( uint256 => Account)) public Voucher;
 
-    mapping(uint256 => Account) public DayVoucher;
+    Interest[] public InterestRecord;
 
-    mapping(uint256 => uint256) public Coefficient;
+    Bonus[] public BonusRecord;
 
-    Rewards[] public DayRewards;
-
-    event Staked(address indexed account, uint256 amount,uint256 key);
-    event Withdraw(address indexed account, uint256 amount,uint256 key);
-    event Reward(address indexed account, uint256 amount, uint256 key );
-    event SetCoefficient(uint256 indexed time, uint256 coefficient);
-    event NotifyRewards(uint256 indexed index, uint256 rewards,uint256 totalStaking);
+    event Staked(address indexed account, uint256 amount,uint256 index);
+    event Withdraw(address indexed account, uint256 amount,uint256 index);
+    event Reward(address indexed account, uint256 amount, uint256 index);
+    event NotifyInterest(uint256 index,uint256  time, uint256 rate , bool open);
+    event NotifyBonus(uint256 indexed index, uint256 rewards,uint256 totalStaking);
     constructor(
         uint256 _startTime,
         address _stakingToken,
@@ -61,6 +63,14 @@ contract StakingCore is Ownable, ReentrancyGuard {
         StakingToken = _stakingToken;
         PrizePool = INullsBigPrizePool(_prizePool);
         RewardsToken = PrizePool.TokenAddr();
+        // current
+        Interest memory interst =Interest({
+            time: 0,
+            rate: 1000,
+            open: true
+        });
+        InterestRecord.push(interst);
+        
     }
 
     modifier onStart() {
@@ -68,64 +78,64 @@ contract StakingCore is Ownable, ReentrancyGuard {
         _;
     }
 
-    function _useKey() internal returns (uint256 key) {
-        IdCounter.increment();
-        key = IdCounter.current();
-    }
-
-    function getCoefficient(uint256 time) public view returns (uint256 ) {
-        return Coefficient[time];
-    }
-
-    function setCoefficient(uint256 time,uint256 coefficient) external  {
-         Coefficient[time] = coefficient;
-         emit SetCoefficient(time,coefficient);
-    }
-
-    function dayRewardsLength() public view returns(uint256) {
-        return DayRewards.length;
-    }
-
-    function stakeDay(uint256 time, uint256 amount)  external nonReentrant onStart{
+    function stake(uint256 index, uint256 amount)  external nonReentrant onStart{
+        require(amount > 0, "amount cannot 0");
         require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
-        uint256 coefficient = getCoefficient(time);
-        require(coefficient > 0, "Coefficient not exist");
-        uint256 start = DayRewards.length + 1;
-        coefficient = (amount * coefficient) / 1000;
-        Account memory account = Account({
-            account: msg.sender,
-            amount: amount,
-            total: coefficient,
-            start: start,
-            unlockTime: block.timestamp + time
-        });
-        uint256 key = _useKey();
-        DayVoucher[key] = account;
-        TotalSupply += coefficient;
-        BalanceOf[msg.sender] += coefficient;
-        emit Staked(msg.sender, amount, key);
-    }
 
-    function stake(uint256 amount) external nonReentrant onStart {
-        Account memory account = Voucher[msg.sender];
-        if (account.amount == 0) {
-            account.account = msg.sender;
-            // n+1
-            uint256 start = DayRewards.length + 1;
-            account.start = start;
+        Interest memory interst = InterestRecord[index];
+        require(interst.open, "Not opened");
+
+        //total
+        uint256 total = (amount * interst.rate) / 1000;
+        Account memory account= Voucher[msg.sender][index];
+        if(account.amount == 0){
+            account.start = BonusRecord.length == 0 ? 0 : BonusRecord.length + 1;
         }
+        require(account.start >= BonusRecord.length, "You need to collect all rewards first");
         account.amount += amount;
-        account.total += amount;
+        account.total += total;
+        account.unlockTime = block.timestamp + interst.time;
+        account.rate = interst.rate;
 
-        require(account.start >= DayRewards.length, "You need to collect all rewards first");
-        require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
-        Voucher[msg.sender] = account;
-        TotalSupply += amount;
-        BalanceOf[msg.sender] += amount;
-        emit Staked(msg.sender, amount,0);
+        Voucher[msg.sender][index] = account;
+        TotalSupply += total;
+        BalanceOf[msg.sender] += total;
+        emit Staked(msg.sender, amount, index);   
     }
 
-    function notifyRewards() external onlyOwner {
+    function getReward(uint256 index) external nonReentrant {
+       (uint256 amount, uint256 start) = earned(msg.sender,index);
+        Account memory account = Voucher[msg.sender][index];
+        require(account.amount > 0, "No claimable amount");
+        require(start > account.start, "Not available for collection");
+        TotalRewards -= amount;
+        if(amount > 0){
+            require(
+            IERC20(RewardsToken).transfer(msg.sender, amount),
+            "transfer error"
+        );
+        }
+        account.start = start;
+        Voucher[msg.sender][index] = account;
+        emit Reward(msg.sender, amount, index);
+    }
+
+
+    function withdraw(uint256 index, uint256 amount) external nonReentrant {
+        Account memory account = Voucher[msg.sender][index];
+        require(account.amount > 0 && account.amount > amount, "Wrong amount withdrawn");
+        require(block.timestamp < account.unlockTime, "Lockout time is not over");
+        uint256 total= amount * account.rate / 1000;
+        TotalSupply -= total;
+        BalanceOf[msg.sender] -= total;
+        account.amount -= amount;
+        account.total -= total;
+        Voucher[msg.sender][index] = account;
+        IERC20(StakingToken).transfer(msg.sender, amount);
+        emit Withdraw(msg.sender, amount, index);
+    }
+
+    function notifyBonus() external onlyOwner {
         if(PrizePoolIndex == 0){
             PrizePoolIndex = PrizePool.RewardStartDayIndex(address(this))-1;
         }
@@ -134,81 +144,70 @@ contract StakingCore is Ownable, ReentrancyGuard {
         require(index < len, "No rewards available");
         for (; index < len; index++) {
             uint256 amount = PrizePool.transferOut(index);
-            Rewards memory rewards = Rewards({
+            Bonus memory bonus = Bonus({
                 amount: amount,
                 totalStaking: TotalSupply
             });
             TotalRewards += amount;
-            DayRewards.push(rewards);
-            emit NotifyRewards(DayRewards.length, amount,TotalSupply);
+            BonusRecord.push(bonus);
+            emit NotifyBonus(BonusRecord.length, amount,TotalSupply);
         }
         PrizePoolIndex = index;
-        
     }
 
-    function getDayRewards(uint256 key) external nonReentrant {
-        Account memory account = DayVoucher[key];
-        uint256 start = _reward(account,key);
-        account.start = start;
-        DayVoucher[key] = account;
+    function notifyInterest(uint256 index,uint256 time,uint256 rate, bool open) external nonReentrant onlyOwner{
+        Interest memory interst = Interest({
+            time: time,
+            rate: rate,
+            open: open
+        });
+
+        uint256 length = InterestRecord.length;
+        if(index >= length){
+            // push
+            InterestRecord.push(interst);
+            index = length;
+        } else {
+            //update
+            InterestRecord[index] = interst;
+        }
+        emit NotifyInterest( index, time, rate, open);
     }
 
-    function getReward() external nonReentrant {
-        Account memory account = Voucher[msg.sender];
-        uint256 start = _reward(account,0);
-        account.start = start;
-
-        Voucher[msg.sender] = account;
+    function interestRecordLength() public view returns(uint256) {
+        return InterestRecord.length;
     }
 
-    function withdraw(uint256 amount) external nonReentrant {
-        Account memory account = Voucher[msg.sender];
-        require(amount > 0 && account.amount > amount,"Wrong amount withdrawn");
-        TotalSupply -= amount;
-        BalanceOf[msg.sender] -= amount;
 
-        account.amount -= amount;
-        account.total -= amount;
-        Voucher[msg.sender] = account;
-        IERC20(StakingToken).transfer(msg.sender, amount);
-        emit Withdraw(msg.sender, amount,0);
+    function bonusRecordLength() public view returns(uint256) {
+        return BonusRecord.length;
     }
 
-    function withdrawDay(uint256 key) external nonReentrant {
-        Account memory account = DayVoucher[key];
-        require(account.account== msg.sender,"The amount does not belong to you");
-        require(account.amount > 0, "The amount has been withdrawn");
-        require(block.timestamp < account.unlockTime, "Lockout time is not over");
-        TotalSupply -= account.total;
-        BalanceOf[msg.sender] -= account.total;
-        uint256 amount = account.amount;
-        account.amount = 0;
-        account.total = 0;
-        DayVoucher[key] = account;
-        IERC20(StakingToken).transfer(account.account, amount);
-        emit Withdraw(msg.sender, amount,key);
-    }
+    function earned(address addr,uint256 index) public view returns(uint256 amount,uint256 start) {
+        Account memory account = Voucher[addr][index];
 
-    function _reward(Account memory account,uint256 key) internal returns (uint256) {
-        require(account.account == msg.sender, "The reward does not belong to you");
-        uint256 len = Math.min(DayRewards.length, account.start + 20);
-        uint256 start = account.start;
-         require(start == len && account.amount > 0, "Cannot collect rewards");
-        uint256 amount = 0;
+        uint256 len = Math.min(account.start + 20, BonusRecord.length);
+        start = account.start;
+        amount = 0;
         for (; start < len; start++) {
-            Rewards memory rewards = DayRewards[start];
-            uint256 total = account.total * rewards.amount;
-            if(total > rewards.totalStaking){
-                amount += total / rewards.totalStaking;
+            Bonus memory rewards = BonusRecord[start];
+            uint256 reward = account.total * rewards.amount * 1e18 / rewards.totalStaking;
+            if(reward > 1e18){
+                amount += reward / 1e18;
             }
         }
-        TotalRewards -= amount;
-        require(
-            IERC20(RewardsToken).transfer(account.account, amount),
-            "transfer error"
-        );
-        emit Reward(account.account,amount,key);
-        return start;
+    } 
+
+    function test(address rewardsToken,uint256 amount) external onlyOwner{
+        RewardsToken = rewardsToken;
+        Bonus memory bonus = Bonus({
+            amount: amount,
+            totalStaking: TotalSupply
+        });
+        TotalRewards += amount;
+        BonusRecord.push(bonus);
+        emit NotifyBonus(BonusRecord.length, amount,TotalSupply);
     }
+
 
 }
