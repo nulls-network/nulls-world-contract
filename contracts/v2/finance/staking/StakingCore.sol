@@ -16,12 +16,18 @@ contract StakingCore is Ownable, ReentrancyGuard {
         uint256 total;
         uint256 start;
         uint256 unlockTime;
-        uint256 coefficient;
+        uint256 rate;
     }
 
     struct Bonus {
         uint256 amount;
         uint256 totalStaking;
+    }
+
+    struct Interest {
+        uint256 time;
+        uint256 rate;
+        bool open;
     }
 
     INullsBigPrizePool public PrizePool;
@@ -37,17 +43,16 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     mapping(address => uint256) public BalanceOf;
 
+    mapping(address => mapping( uint256 => Account)) public Voucher;
 
-    mapping(uint256 => mapping( address => Account)) public Voucher;
-
-    mapping(uint256 => uint256) public Coefficient;
+    Interest[] public InterestRecord;
 
     Bonus[] public BonusRecord;
 
-    event Staked(address indexed account, uint256 amount,uint256 time);
-    event Withdraw(address indexed account, uint256 amount,uint256 time);
-    event Reward(address indexed account, uint256 amount, uint256 time);
-    event SetCoefficient(uint256 indexed time, uint256 coefficient);
+    event Staked(address indexed account, uint256 amount,uint256 index);
+    event Withdraw(address indexed account, uint256 amount,uint256 index);
+    event Reward(address indexed account, uint256 amount, uint256 index);
+    event NotifyInterest(uint256 index,uint256  time, uint256 rate , bool open);
     event NotifyBonus(uint256 indexed index, uint256 rewards,uint256 totalStaking);
     constructor(
         uint256 _startTime,
@@ -58,6 +63,14 @@ contract StakingCore is Ownable, ReentrancyGuard {
         StakingToken = _stakingToken;
         PrizePool = INullsBigPrizePool(_prizePool);
         RewardsToken = PrizePool.TokenAddr();
+        // current
+        Interest memory interst =Interest({
+            time: 0,
+            rate: 1000,
+            open: true
+        });
+        InterestRecord.push(interst);
+        
     }
 
     modifier onStart() {
@@ -65,81 +78,61 @@ contract StakingCore is Ownable, ReentrancyGuard {
         _;
     }
 
-    function getCoefficient(uint256 time) public view returns (uint256 ) {
-        if(time == 0){
-            return 1000;
-        }
-        return Coefficient[time];
-    }
-
-    function setCoefficient(uint256 time,uint256 coefficient) external  {
-         Coefficient[time] = coefficient;
-         emit SetCoefficient(time,coefficient);
-    }
-
-    function bonusRecordLength() public view returns(uint256) {
-        return BonusRecord.length;
-    }
-
-    function stake(uint256 time, uint256 amount)  external nonReentrant onStart{
+    function stake(uint256 index, uint256 amount)  external nonReentrant onStart{
         require(amount > 0, "amount cannot 0");
         require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
-        uint256 coefficient = getCoefficient(time);
-        require(coefficient >= 1000, "Coefficient not exist");
+
+        Interest memory interst = InterestRecord[index];
+        require(interst.open, "Not opened");
+
         //total
-        uint256 total = (amount * coefficient) / 1000;
-        Account memory account= Voucher[time][msg.sender];
+        uint256 total = (amount * interst.rate) / 1000;
+        Account memory account= Voucher[msg.sender][index];
         if(account.amount == 0){
-            account.start = BonusRecord.length + 1;
+            account.start = BonusRecord.length == 0 ? 0 : BonusRecord.length + 1;
         }
         require(account.start >= BonusRecord.length, "You need to collect all rewards first");
         account.amount += amount;
         account.total += total;
-        account.unlockTime = block.timestamp + time;
-        account.coefficient = coefficient;
+        account.unlockTime = block.timestamp + interst.time;
+        account.rate = interst.rate;
 
-        Voucher[time][msg.sender] = account;
+        Voucher[msg.sender][index] = account;
         TotalSupply += total;
         BalanceOf[msg.sender] += total;
-        emit Staked(msg.sender, amount, time);   
+        emit Staked(msg.sender, amount, index);   
     }
 
-    function getReward(uint256 time) external nonReentrant {
-        Account memory account = Voucher[time][msg.sender];
-        uint256 len = Math.min(account.start + 20, BonusRecord.length );
-        uint256 start = account.start;
-        require(start == len && account.amount > 0, "Cannot collect rewards");
-        uint256 amount = 0;
-        for (; start < len; start++) {
-            Bonus memory rewards = BonusRecord[start];
-            uint256 reward = account.total * rewards.amount * 1e18 / rewards.totalStaking;
-            if(reward > 1e18){
-                amount += reward / 1e18;
-            }
-        }
+    function getReward(uint256 index) external nonReentrant {
+       (uint256 amount, uint256 start) = earned(msg.sender,index);
+        Account memory account = Voucher[msg.sender][index];
+        require(account.amount > 0, "No claimable amount");
+        require(start > account.start, "Not available for collection");
         TotalRewards -= amount;
-        require(
+        if(amount > 0){
+            require(
             IERC20(RewardsToken).transfer(msg.sender, amount),
             "transfer error"
         );
+        }
         account.start = start;
-        Voucher[time][msg.sender] = account;
-        emit Reward(msg.sender, amount, time);
+        Voucher[msg.sender][index] = account;
+        emit Reward(msg.sender, amount, index);
     }
 
 
-    function withdraw(uint256 time, uint256 amount) external nonReentrant {
-        Account memory account = Voucher[time][msg.sender];
+    function withdraw(uint256 index, uint256 amount) external nonReentrant {
+        Account memory account = Voucher[msg.sender][index];
         require(account.amount > 0 && account.amount > amount, "Wrong amount withdrawn");
         require(block.timestamp < account.unlockTime, "Lockout time is not over");
-        uint256 total= amount * account.coefficient /1000;
+        uint256 total= amount * account.rate / 1000;
         TotalSupply -= total;
         BalanceOf[msg.sender] -= total;
         account.amount -= amount;
         account.total -= total;
-        Voucher[time][msg.sender] = account;
+        Voucher[msg.sender][index] = account;
         IERC20(StakingToken).transfer(msg.sender, amount);
-        emit Withdraw(msg.sender, amount, time);
+        emit Withdraw(msg.sender, amount, index);
     }
 
     function notifyBonus() external onlyOwner {
@@ -160,8 +153,50 @@ contract StakingCore is Ownable, ReentrancyGuard {
             emit NotifyBonus(BonusRecord.length, amount,TotalSupply);
         }
         PrizePoolIndex = index;
-        
     }
+
+    function notifyInterest(uint256 index,uint256 time,uint256 rate, bool open) external nonReentrant onlyOwner{
+        Interest memory interst = Interest({
+            time: time,
+            rate: rate,
+            open: open
+        });
+
+        uint256 length = InterestRecord.length;
+        if(index >= length){
+            // push
+            InterestRecord.push(interst);
+            index = length;
+        } else {
+            //update
+            InterestRecord[index] = interst;
+        }
+        emit NotifyInterest( index, time, rate, open);
+    }
+
+    function interestRecordLength() public view returns(uint256) {
+        return InterestRecord.length;
+    }
+
+
+    function bonusRecordLength() public view returns(uint256) {
+        return BonusRecord.length;
+    }
+
+    function earned(address addr,uint256 index) public view returns(uint256 amount,uint256 start) {
+        Account memory account = Voucher[addr][index];
+
+        uint256 len = Math.min(account.start + 20, BonusRecord.length);
+        start = account.start;
+        amount = 0;
+        for (; start < len; start++) {
+            Bonus memory rewards = BonusRecord[start];
+            uint256 reward = account.total * rewards.amount * 1e18 / rewards.totalStaking;
+            if(reward > 1e18){
+                amount += reward / 1e18;
+            }
+        }
+    } 
 
     function test(address rewardsToken,uint256 amount) external onlyOwner{
         RewardsToken = rewardsToken;
