@@ -56,6 +56,7 @@ interface INullsRankManager {
     // 擂台挑战预获取nonce值: itemId、业务hash、nonce、过期时间、用户
     event RankNewNonce(
         uint itemId, 
+        uint challengerPetId,
         bytes32 hv, 
         bytes32 requestKey, 
         uint256 deadline, 
