@@ -3,7 +3,7 @@ const hre = require("hardhat")
 const fs = require("fs");
 const { erc20Name, contractName } = require("./config.json");
 
-// npx hardhat clean && npx hardhat run test/lpStaking/deploy.js
+// npx hardhat clean ; npx hardhat run test/lpStaking/deploy.js
 const addressList = [
     "0x6985E42F0cbF13a48b9DF9Ec845b652318793642",
     "0x84f09d4688c683e2Bb84Cb36CdeC22A288eF99de",
