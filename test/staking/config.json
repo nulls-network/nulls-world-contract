@@ -1,6 +1,7 @@
 {
     "contractName": "StakingCore",
     "erc20Name": "IdoToken",
-    "address": "0x9B035aeed5ff31e0d25485515919cB89833Ef799",
-    "stakingToken": "0x3357a33F5e654849088985DC7E129fB68F2D68BC"
+    "address": "0xc7EfE567C812ABEfe2Ed3e9Ef95417A20A425935",
+    "stakingToken": "0x3357a33F5e654849088985DC7E129fB68F2D68BC",
+    "rewardsToken": "0x4273CCf89e79FEB97Bb54740006aA5CF34E14865"
 }

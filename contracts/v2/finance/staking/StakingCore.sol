@@ -81,17 +81,22 @@ contract StakingCore is Ownable, ReentrancyGuard {
     function stake(uint256 index, uint256 amount)  external nonReentrant onStart{
         require(amount > 0, "amount cannot 0");
         require(IERC20(StakingToken).transferFrom(msg.sender, address(this), amount), "transfer error");
-
         Interest memory interst = InterestRecord[index];
         require(interst.open, "Not opened");
-
-        //total
-        uint256 total = (amount * interst.rate) / 1000;
         Account memory account= Voucher[msg.sender][index];
+        //new account or withdraw all
         if(account.amount == 0){
             account.start = BonusRecord.length == 0 ? 0 : BonusRecord.length + 1;
+            account.rate = interst.rate;
         }
         require(account.start >= BonusRecord.length, "You need to collect all rewards first");
+        //rate is modify , update account total
+        if(interst.rate != account.rate){
+           amount += _oldStake(account);
+        }
+        //total
+        uint256 total = (amount * interst.rate) / 1000;
+
         account.amount += amount;
         account.total += total;
         account.unlockTime = block.timestamp + interst.time;
@@ -101,6 +106,14 @@ contract StakingCore is Ownable, ReentrancyGuard {
         TotalSupply += total;
         BalanceOf[msg.sender] += total;
         emit Staked(msg.sender, amount, index);   
+    }
+
+    function _oldStake(Account memory account) internal returns (uint256 amount){
+        amount= account.amount;
+        TotalSupply -=  account.total;
+        BalanceOf[msg.sender] -= account.total;
+        account.amount = 0;
+        account.total = 0;
     }
 
     function getReward(uint256 index) external nonReentrant {
@@ -124,7 +137,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
     function withdraw(uint256 index, uint256 amount) external nonReentrant {
         Account memory account = Voucher[msg.sender][index];
         require(account.amount > 0 && account.amount > amount, "Wrong amount withdrawn");
-        require(block.timestamp < account.unlockTime, "Lockout time is not over");
+        require(block.timestamp > account.unlockTime, "Lockout time is not over");
         uint256 total= amount * account.rate / 1000;
         TotalSupply -= total;
         BalanceOf[msg.sender] -= total;
@@ -200,6 +213,7 @@ contract StakingCore is Ownable, ReentrancyGuard {
 
     function test(address rewardsToken,uint256 amount) external onlyOwner{
         RewardsToken = rewardsToken;
+        require(IERC20(rewardsToken).transferFrom(msg.sender, address(this), amount), "transfer error");
         Bonus memory bonus = Bonus({
             amount: amount,
             totalStaking: TotalSupply
