@@ -105,7 +105,7 @@ contract NullsBigPrizePool is INullsBigPrizePool, Ownable {
     }
 
     function _getDayIndex() internal view returns (uint256 idx) {
-        idx = (block.timestamp - BeginTime) / (300);
+        idx = (block.timestamp - BeginTime) / (1 days);
     }
 
     function _getIndexInTrack(uint256[] memory track, uint256 currentIndex)

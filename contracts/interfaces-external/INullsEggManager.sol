@@ -16,16 +16,12 @@ interface INullsEggManager {
 
     // 预开蛋事件: itemID、业务hash、nonce值、过期时间
     event EggNewNonce(
+        address user,
+        uint total,
         uint itemId, 
         bytes32 hv, 
         bytes32 requestKey, 
         uint256 deadline
-    );
-
-    // 预开蛋标记：用户、开蛋数量
-    event OpenEggBefore(
-        address user,
-        uint256 amount
     );
 
     event NewEggItem(
@@ -40,6 +36,11 @@ interface INullsEggManager {
         address token
     );
 
+    event RefundEgg(
+        address user,
+        bytes32 requestKey,
+        uint amount
+    );
     /*
      * 设置核心合约
      *

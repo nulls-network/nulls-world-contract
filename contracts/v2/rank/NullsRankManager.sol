@@ -27,7 +27,7 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
     }
 
     struct PkPayRecord {
-        uint itemId;
+        bool isAvailable;
         address token;
         uint amount;
     }
@@ -64,7 +64,9 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
 
     mapping(bytes32 => bytes32) KeyToHv;
 
-    mapping(address => PkPayRecord) PkPayRecords;
+    mapping(bytes32 =>  PkPayRecord) PkPayRecords;
+
+    mapping(uint256 => uint256) public RankQueueLen;
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsOpenEggV1/Is not from proxy.");
@@ -227,11 +229,10 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         
         // 擂台不存在了,需要进行退款操作
         if (rank.bonusPool == 0) {
-            PkPayRecord memory pkPayRecord = PkPayRecords[player];
-            if (pkPayRecord.itemId == itemId && pkPayRecord.token == rank.token && pkPayRecord.amount == challengeCapital) {
+            PkPayRecord memory pkPayRecord = PkPayRecords[requestKey];
+            if (pkPayRecord.token == rank.token && pkPayRecord.amount == challengeCapital) {
                 IERC20( rank.token ).transfer( player, pkPayRecord.amount);
-                delete PkPayRecords[player];
-                emit RefundPkFee(player, itemId, rank.token, pkPayRecord.amount);
+                emit RefundPkFee(player, requestKey, pkPayRecord.amount);
             }
             return;
         }
@@ -251,7 +252,7 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         
 
         // 判断挑战结果,1/16的获胜几率
-        if (uint8(bytes1(rv)) & 0x0f == 0x0f) {
+        if (uint8(bytes1(rv)) % 16 == 0) {
             // 挑战者获胜
             if (challengeCapital * 10 > rank.bonusPool) {
                 // 全部赢走
@@ -301,6 +302,13 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         uint256 deadline
     ) external override {
 
+        require(
+                uint8(
+                    bytes1(
+                        INullsPetToken( PetToken ).Types(challengerPetId)
+                    )
+                ) != 0xff, "NullsRankManager/Challenge pets cannot participate in pk");
+
         require(block.timestamp <= deadline, "NullsRankManager: expired deadline");
 
         // 判断宠物所有权
@@ -312,14 +320,10 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         // 扣款
         // 计算挑战金(初始资金/倍率)
         Rank memory rank = Ranks[itemId];
+
+        require(rank.bonusPool > 0, "NullsRankManager/The rank is closed");
         uint challengeCapital = rank.ticketAmt;
         TransferProxy.erc20TransferFrom(rank.token, msg.sender, address(this) , challengeCapital);
-
-        PkPayRecords[msg.sender] = PkPayRecord({
-            itemId: itemId,
-            token: rank.token,
-            amount: challengeCapital
-        });
 
         // 记录时间
         LastChallengeTime[challengerPetId] = block.timestamp + GeneralPetRestTime;
@@ -339,6 +343,12 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         // 调用预注册方法
         bytes32 requestKey = INullsWorldCore(Proxy).getNonce(itemId, hv);
 
+        PkPayRecords[requestKey] = PkPayRecord({
+            isAvailable: true,
+            token: rank.token,
+            amount: challengeCapital
+        });
+
         KeyToHv[requestKey] = hv; 
 
         // 存储数据
@@ -349,7 +359,40 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
             isOk: true
         });
 
+        RankQueueLen[itemId] += 1;
         emit RankNewNonce(itemId, challengerPetId, hv, requestKey, deadline, msg.sender);
+    }
+
+    function refund(bytes32 requestKey) external {
+      bytes32 hv = KeyToHv[requestKey]; 
+      DataInfo memory info = DataInfos[hv];
+      require(msg.sender == info.player && info.isOk, "NullsRankManager/Illegal operation");
+      require(!INullsWorldCore(Proxy).checkRequestKey(requestKey), "NullsRankManager/Refund time is not due");
+      PkPayRecord storage pkPayRecord = PkPayRecords[requestKey];
+      require(pkPayRecord.isAvailable, "NullsRankManager/No refund");
+      IERC20(pkPayRecord.token).transfer(msg.sender, pkPayRecord.amount);
+      pkPayRecord.isAvailable = false;
+      emit RefundPkFee(msg.sender, requestKey, pkPayRecord.amount);
+    }
+
+    function withdrawRankAward(uint item) external {
+        Rank storage rank = Ranks[item];
+        require(rank.bonusPool > 0, "NullsRankManager/The rank is closed");
+        require(INullsPetToken( PetToken ).ownerOf(rank.petId) == msg.sender, "NullsRankManager/Pet id is illegal");
+
+        // send to 
+        IERC20( rank.token ).transfer( msg.sender, rank.ownerBonus);
+        emit RewardToRankOwner(msg.sender, rank.ownerBonus);
+        rank.ownerBonus = 0;
+
+        IERC20( rank.token ).transfer( owner() , rank.gameOperatorBonus);
+        emit RewardToGameOperator(owner(), rank.gameOperatorBonus);
+        rank.gameOperatorBonus = 0;
+    }
+
+    function getRestStatus(uint256 petId) view external returns (uint currentBlockTime, uint restEndTime) {
+        currentBlockTime = block.timestamp;
+        restEndTime = LastChallengeTime[petId];
     }
 
     // Receive proxy's message 
@@ -364,11 +407,14 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         // 防止重复消费data
         require(dataInfo.isOk, "NullsRankManager/Do not repeat consumption.");
 
-        doReward(dataInfo.player, dataInfo.itemId, rv, dataInfo.challengerPetId, key);
+        if (PkPayRecords[key].isAvailable) {
+          doReward(dataInfo.player, dataInfo.itemId, rv, dataInfo.challengerPetId, key);
+        }
         
         // isOk标志设置为false
         dataInfo.isOk = false;
         DataInfos[hv] = dataInfo;
+        RankQueueLen[item] -= 1;
         return true;
     }
 }

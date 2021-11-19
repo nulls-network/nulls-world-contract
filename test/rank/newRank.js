@@ -15,40 +15,40 @@ const nullsErc20TokenContractName = "NullsERC20Token";
 let nullsERC20Token = "";
 let transferProxy = "";
 
-async function createRing() {
-    await readConfig()
-    let tokenContract = await connectContract(nullsErc20TokenContractName, nullsERC20Token);
-    ret = await tokenContract.approve(transferProxy, 1000 * 10000000);
-    await ret.wait();
+async function createRing () {
+  await readConfig()
+  let tokenContract = await connectContract(nullsErc20TokenContractName, nullsERC20Token);
+  ret = await tokenContract.approve(transferProxy, 1000 * 10000000);
+  await ret.wait();
 
-    //创建擂台 
-    let ringManager_contrcat = await connectContract(contractName, contractAddr);
+  //创建擂台 
+  let ringManager_contrcat = await connectContract(contractName, contractAddr);
 
-    let petId = 121;
-    let multiple = 5;
+  let petId = 25;
+  let multiple = 5;
 
-    await ringManager_contrcat.createRank(petId, nullsERC20Token, multiple);
+  await ringManager_contrcat.createRank(petId, nullsERC20Token, multiple);
 }
 
-async function readConfig() {
-    const configFile = "./scripts/config.json"
-    let rawdata = fs.readFileSync(configFile)
-    rwaJsonData = JSON.parse(rawdata)
-    contractAddr = rwaJsonData['contrat_address']['RingManager_address'];
-    nullsERC20Token = rwaJsonData['contrat_address']['NullsErc20TestToken'];
-    transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
+async function readConfig () {
+  const configFile = "./scripts/config.json"
+  let rawdata = fs.readFileSync(configFile)
+  rwaJsonData = JSON.parse(rawdata)
+  contractAddr = rwaJsonData['contrat_address']['NullsRankManager'];
+  nullsERC20Token = rwaJsonData['contrat_address']['NullsErc20TestToken'];
+  transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
 }
 
-async function connectContract(contractName, contractAddress) {
-    const [owner] = await hre.ethers.getSigners();
-    let contract = await hre.ethers.getContractAt(contractName, contractAddress, owner)
+async function connectContract (contractName, contractAddress) {
+  const [owner] = await hre.ethers.getSigners();
+  let contract = await hre.ethers.getContractAt(contractName, contractAddress, owner)
 
-    console.log(`connected ${contractName} address is : ${contract.address}`)
-    return contract;
+  console.log(`connected ${contractName} address is : ${contract.address}`)
+  return contract;
 }
 
-async function main() {
-    await createRing();
+async function main () {
+  await createRing();
 }
 
 

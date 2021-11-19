@@ -2,11 +2,11 @@ const hre = require("hardhat")
 const fs = require("fs");
 
 // 邀请测试脚本,使用ht-testnet-user1测试
-// npx hardhat run test/invite/invite.js --network ht-testnet-user1
+// npx hardhat run test/invite/invite.js --network ht-testnet-user3
 
 const contractName = "NullsInvite";
 let contractAddr = "";
-const superior = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+const superior = "0x8c47494c675333dc613547600432d53ae78b272f";
 
 async function main() {
 

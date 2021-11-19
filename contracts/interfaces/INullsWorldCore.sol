@@ -12,4 +12,8 @@ interface INullsWorldCore {
     ) external returns (bytes32 requestKey);
 
     function newScene(address addr) external returns (uint256 sceneId);
+
+    function checkRequestKey(
+      bytes32 requestKey
+    ) external view returns(bool);
 }

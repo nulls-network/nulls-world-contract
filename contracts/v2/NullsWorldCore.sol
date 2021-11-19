@@ -10,7 +10,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract NullsWorldCore is IZKRandomCallback, Ownable {
 
     // random oracle
-    address RandomOracle;
     IZKRandomCore ZKRandomCore;
 
     uint256 GameId;
@@ -24,6 +23,11 @@ contract NullsWorldCore is IZKRandomCallback, Ownable {
     modifier onlyOwnerOrWhiteList() {
         require(owner() == _msgSender() || newItemWhiteList[_msgSender()] == true, "Ownable: caller is not the owner or white list");
         _;
+    }
+
+    modifier onlyZkRandom() {
+      require(address(ZKRandomCore) == _msgSender(), "NullsWorldCore/No permission");
+      _;
     }
 
     constructor(address router) {
@@ -66,14 +70,8 @@ contract NullsWorldCore is IZKRandomCallback, Ownable {
     function addPubkeyAsync(
         uint256 itemId, 
         address pubkey
-    ) external onlyOwner {
+    ) external onlyOwnerOrWhiteList {
         ZKRandomCore.modifyItem(itemId, pubkey);
-    }
-
-    function addBound(
-        uint8 timesValue
-    ) external {
-        ZKRandomCore.addBond(GameId, timesValue);
     }
 
     // 调用此方法将取消注册游戏
@@ -101,7 +99,7 @@ contract NullsWorldCore is IZKRandomCallback, Ownable {
         uint item,
         bytes32 key,
         bytes32 rv
-    ) external override returns (bool) {
+    ) external override onlyZkRandom returns (bool){
         uint sceneId = Items[item] ;
         address sceneAddr = Scenes[sceneId] ;
         return IZKRandomCallback(sceneAddr).notify(item, key, rv);
@@ -115,6 +113,12 @@ contract NullsWorldCore is IZKRandomCallback, Ownable {
         bytes32 s
     ) external { 
         ZKRandomCore.generateRandom(key, deadline, v, r, s);
+    }
+
+    function checkRequestKey(
+      bytes32 requestKey
+    ) external view returns(bool) {
+        return ZKRandomCore.checkRequestKey(requestKey);
     }
 
 }

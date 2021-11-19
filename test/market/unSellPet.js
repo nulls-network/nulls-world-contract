@@ -8,25 +8,25 @@ const contractName = "NullsPetToken";
 let contractAddr = "";
 
 const petId = 1;
-async function main() {
+async function main () {
 
   await readConfig()
   rankContract = await connectContract(contractName, contractAddr)
-  
+
   ret = await rankContract.unSellPet(petId)
   await ret.wait()
 }
 
-async function readConfig() {
+async function readConfig () {
   const configFile = "./scripts/config.json"
   let rawdata = fs.readFileSync(configFile)
   rwaJsonData = JSON.parse(rawdata)
-  contractAddr = rwaJsonData['contrat_address']['petToken_address'];
+  contractAddr = rwaJsonData['contrat_address']['NullsPetToken'];
 }
 
-async function connectContract(contractName, contractAddress) {
+async function connectContract (contractName, contractAddress) {
   const [owner] = await hre.ethers.getSigners();
-  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, owner)
+  let contract = await hre.ethers.getContractAt(contractName, contractAddress, owner)
 
   console.log(`connected ${contractName} address is : ${contract.address}`)
   return contract;

@@ -51,4 +51,8 @@ interface IZKRandomCore {
         uint256 itemId, 
         bytes memory prikey
     ) external;
+
+    function checkRequestKey(
+      bytes32 requestKey
+    ) external view returns(bool);
 }

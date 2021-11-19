@@ -10,7 +10,7 @@ let contractAddr = "";
 let coreContractAddr = "";
 const coreContractName = "NullsWorldCore";
 
-async function main() {
+async function main () {
   await readConfig()
   eggContract = await connectContract(contractName, contractAddr)
   coreContract = await connectContract(coreContractName, coreContractAddr)
@@ -25,17 +25,17 @@ async function main() {
   await res.wait()
 }
 
-async function readConfig() {
+async function readConfig () {
   const configFile = "./scripts/config.json"
   let rawdata = fs.readFileSync(configFile)
   rwaJsonData = JSON.parse(rawdata)
-  contractAddr = rwaJsonData['contrat_address']['EggManager_address'];
-  coreContractAddr = rwaJsonData['contrat_address']['worldCore_address'];
+  contractAddr = rwaJsonData['contrat_address']['NullsEggManager'];
+  coreContractAddr = rwaJsonData['contrat_address']['NullsWorldCore'];
 }
 
-async function connectContract(contractName, contractAddress) {
+async function connectContract (contractName, contractAddress) {
   const [owner] = await hre.ethers.getSigners();
-  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, owner)
+  let contract = await hre.ethers.getContractAt(contractName, contractAddress, owner)
 
   console.log(`connected ${contractName} address is : ${contract.address}`)
   return contract;

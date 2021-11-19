@@ -6,7 +6,7 @@ const fs = require("fs");
 
 const contractName = "NullsInvite";
 let contractAddr = "";
-const user = "0x84EAFa138bEcA0D8AEE173D7Bc2Df8B240B0d89e";
+const user = "0xB1877E668f3827FF8301EfEAe6aB7aB081d75f11";
 
 async function main() {
 

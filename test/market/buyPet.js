@@ -14,11 +14,11 @@ const c20TokenContractName = "NullsERC20Token";
 
 const petId = 1;
 const sellFee = 100;
-async function main() {
+async function main () {
 
   await readConfig()
   rankContract = await connectContract(contractName, contractAddr)
-  
+
   // 授权
   tokenContract = await connectContract(c20TokenContractName, c20TokenAddr)
   ret = await tokenContract.approve(transferProxy, sellFee)
@@ -28,18 +28,18 @@ async function main() {
   await ret.wait()
 }
 
-async function readConfig() {
+async function readConfig () {
   const configFile = "./scripts/config.json"
   let rawdata = fs.readFileSync(configFile)
   rwaJsonData = JSON.parse(rawdata)
-  contractAddr = rwaJsonData['contrat_address']['petToken_address'];
+  contractAddr = rwaJsonData['contrat_address']['NullsPetToken'];
   transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
   c20TokenAddr = rwaJsonData['contrat_address']['NullsErc20TestToken'];
 }
 
-async function connectContract(contractName, contractAddress) {
+async function connectContract (contractName, contractAddress) {
   const [owner] = await hre.ethers.getSigners();
-  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, owner)
+  let contract = await hre.ethers.getContractAt(contractName, contractAddress, owner)
 
   console.log(`connected ${contractName} address is : ${contract.address}`)
   return contract;

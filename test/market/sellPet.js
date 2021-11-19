@@ -12,33 +12,33 @@ let transferProxy = "";
 let c20TokenAddr = "";
 const sellFee = 100;
 const petId = 1;
-async function main() {
+async function main () {
 
   await readConfig()
   rankContract = await connectContract(contractName, contractAddr)
-  
+
   // ret = await rankContract.setSupportedToken(c20TokenAddr, true, 30);
   // await ret.wait()
   // 授权
   ret = await rankContract.approve(transferProxy, petId)
   await ret.wait()
-  
+
   ret = await rankContract.sellPet(petId, c20TokenAddr, sellFee)
   await ret.wait()
 }
 
-async function readConfig() {
+async function readConfig () {
   const configFile = "./scripts/config.json"
   let rawdata = fs.readFileSync(configFile)
   rwaJsonData = JSON.parse(rawdata)
-  contractAddr = rwaJsonData['contrat_address']['petToken_address'];
+  contractAddr = rwaJsonData['contrat_address']['NullsPetToken'];
   transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
   c20TokenAddr = rwaJsonData['contrat_address']['NullsErc20TestToken'];
 }
 
-async function connectContract(contractName, contractAddress) {
+async function connectContract (contractName, contractAddress) {
   const [owner] = await hre.ethers.getSigners();
-  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, owner)
+  let contract = await hre.ethers.getContractAt(contractName, contractAddress, owner)
 
   console.log(`connected ${contractName} address is : ${contract.address}`)
   return contract;

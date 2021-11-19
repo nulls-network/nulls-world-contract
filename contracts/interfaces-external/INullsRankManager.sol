@@ -65,8 +65,17 @@ interface INullsRankManager {
 
     event RefundPkFee(
         address user,
-        uint itemId,
-        address token,
+        bytes32 requestKey,
+        uint amount
+    );
+
+    event RewardToRankOwner(
+        address user,
+        uint amount
+    );
+
+    event RewardToGameOperator(
+        address user,
         uint amount
     );
 

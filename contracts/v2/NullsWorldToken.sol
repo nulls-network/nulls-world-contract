@@ -9,9 +9,12 @@ contract NullsWorldToken is ERC20 {
     address Owner ;
     address Oper ;
     uint BeginTime = 0 ;
-    uint Free4day = 4200 * 1e18 ;
+    uint Free4day = 3000 ;
     uint DayIndex = 0 ;
+
+
     uint8 Decimals = 6;
+    uint256 MaxSupply;
 
     struct Rank {
         uint score ;
@@ -49,8 +52,9 @@ contract NullsWorldToken is ERC20 {
         _ ;
     }
 
-    constructor() ERC20("Nulls.World Token ","NT") {
+    constructor(uint256 maxSupply_) ERC20("Nulls.World Token ","NWT") {
         Owner = msg.sender ;
+        MaxSupply = maxSupply_;
     }
 
     function mint( address player , uint total ) external onlyOper {
@@ -89,6 +93,17 @@ contract NullsWorldToken is ERC20 {
         emit IncrDayScore(player, score , rank.score , report.score );
     }
 
+    function _beforeTokenTransfer(
+        address from,
+        address,
+        uint256 amount
+    ) internal override view {
+        // mint
+        if (from == address(0)) {
+            require( (totalSupply() + amount) <= MaxSupply, "NullsWorldToken/Over mint limit");
+        }
+    }
+
     function receiveToken(uint dayIndex ) external updateDayIndex {
         address player = msg.sender ;
         require( dayIndex < _getDayIndex() , "NullsWorldToken/Must be receive by next day." ) ;
@@ -99,7 +114,8 @@ contract NullsWorldToken is ERC20 {
         Report storage report = Reports[dayIndex] ;
         // No need to use safemath.  
         // report.total > 0 
-        uint tv = ( Free4day / report.total ) * v ;   
+        uint tmpFree4day = Free4day * decimals() * 1e10 * v;
+        uint tv = ( tmpFree4day / report.score ) / 1e10 ;
         _mint( player , tv );
         rank.used = rank.used + v ;
         report.used = report.used + tv ;

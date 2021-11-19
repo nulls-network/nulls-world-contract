@@ -30,8 +30,17 @@ module.exports = {
       url: "https://http-testnet.huobichain.com",
       accounts: ['b0acc12ed1ff644b0c0b5f823870ae032ea9d32a8ff7f0de5390787664adfeff']
     },
+    "bsc-testnet": {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+      accounts: ['b0acc12ed1ff644b0c0b5f823870ae032ea9d32a8ff7f0de5390787664adfeff']
+    },
     "ht-testnet-user1": {
       url: "https://http-testnet.huobichain.com",
+      accounts: ['fe713dc69ff3cd970ada3cf812701c943bac9daec8f730bad600ce4570cff627'],
+      gas: 30_000_00
+    },
+    "bsc-testnet-user1": {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       accounts: ['fe713dc69ff3cd970ada3cf812701c943bac9daec8f730bad600ce4570cff627']
     },
     "ht-testnet-user2": {

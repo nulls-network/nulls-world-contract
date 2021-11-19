@@ -1,6 +1,7 @@
 /// 合约一键部署并初始化脚本
 /// 如果想要部署某一合约，请在config.json文件中将该合约地址对应的value值设置为""
 /// 如果合约地址存在，则不进行部署操作而是进行连接操作
+// npx hardhat run scripts / deploy - script.js--network ht - testnet
 const hre = require("hardhat")
 const fs = require("fs");
 const { exit } = require("process");
@@ -31,14 +32,14 @@ const generalPetRestTime = 300
 // 预售活动奖励的 token 总数
 const promotionTotal = 210000 * 1000000
 // 预售活动开始时间(UTC时间)
-const promotionStartTime = new Date(Date.UTC(2021, 10 - 1, 12, 0, 0, 0)).getTime() / 1000
+const promotionStartTime = new Date(Date.UTC(2021, 11 - 1, 8, 0, 0, 0)).getTime() / 1000
 // const promotionStartTime = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
 // 预售活动结束时间
-const promotionEndTime = new Date(Date.UTC(2021, 11 - 1, 12, 0, 0, 0)).getTime() / 1000
+const promotionEndTime = new Date(Date.UTC(2022, 11 - 1, 8, 0, 0, 0)).getTime() / 1000
 // 预售期蛋购买者和其三级关系奖励金额
 const buyer = 4 * 1000000
-const one =   2 * 1000000
-const two =   1 * 1000000
+const one = 2 * 1000000
+const two = 1 * 1000000
 const three = 5 * 100000
 
 // 市场交易宠物手续费，万分之几
@@ -46,26 +47,28 @@ const petTransferFee = 30;
 
 const newProjectMinFee = 100 * 1000000;
 
-const bigPoolStartTime = (new Date('2021-10-13 08:00:00').getTime()) / 1000
+const bigPoolStartTime = (new Date('2021-11-8 08:00:00').getTime()) / 1000
 
 let rwaJsonData;
 
-async function main() {
-  
+const whiteAddr = "0x7eaC202adA748510e7C54271F1fE61cF4aC574E7"
+
+async function main () {
+
   readJsonFromFile()
 
   // 用于测试期间支付购买宠物、pk的token
   let testC20 = await c20();
   let transferProx = await TransferProxy()
   let eggT = await eggToken()
-  let petT = await petToken(testC20, transferProx) 
+  let petT = await petToken(testC20, transferProx)
 
   let core = await mainCore(testC20)
 
   let eggM = await eggManager(core, petT, eggT, testC20, transferProx)
 
-  await ringManager(core,testC20, petT, transferProx)
-  
+  await ringManager(core, testC20, petT, transferProx)
+
   let mainToken = await nullsToken()
   await bigPrizePool(testC20, eggM)
   let nullsInvite = await invite()
@@ -76,62 +79,62 @@ async function main() {
   console.log("完成!")
 }
 
-function readJsonFromFile() {
+function readJsonFromFile () {
   let rawdata = fs.readFileSync(configFile)
   rwaJsonData = JSON.parse(rawdata)
 }
 
-function writeJosnToConfigFile() {
+function writeJosnToConfigFile () {
   console.log("写入配置文件")
   let data = JSON.stringify(rwaJsonData, null, 4);
   fs.writeFileSync(configFile, data);
 }
 
-async function deployContract( contractName , args ) {
-  let Entity = await hre.ethers.getContractFactory( contractName )
-  let entity = await Entity.deploy( ...args )
+async function deployContract (contractName, args) {
+  let Entity = await hre.ethers.getContractFactory(contractName)
+  let entity = await Entity.deploy(...args)
 
   await entity.deployed()
 
   console.log(` ${contractName} deployed to : ${entity.address} ${args}`)
 
-  return entity 
+  return entity
 }
 
-async function connectContract(contractName, contractAddress) {
+async function connectContract (contractName, contractAddress) {
   const [owner] = await hre.ethers.getSigners();
-  let contract = await hre.ethers.getContractAt( contractName ,contractAddress, owner);
+  let contract = await hre.ethers.getContractAt(contractName, contractAddress, owner);
 
   console.log(`connected ${contractName} address is : ${contract.address}`)
   return contract;
 }
 
-function isEmpty(key) {
+function isEmpty (key) {
   return rwaJsonData[prefixKey][key] === '' || rwaJsonData[prefixKey][key] === null
 }
 
-async function connectOrDeployContract(contractName, contractAddressKey, ... args) {
+async function connectOrDeployContract (contractName, contractAddressKey, ...args) {
   let c = isEmpty(contractAddressKey) ? await deployContract(contractName, args) : await connectContract(contractName, rwaJsonData[prefixKey][contractAddressKey])
   let isNewContract = isEmpty(contractAddressKey);
   rwaJsonData[prefixKey][contractAddressKey] = c.address
   return {
     contract: c,
-    flag: isNewContract      
+    flag: isNewContract
   }
 }
 
 
-async function c20() {
+async function c20 () {
   const contractAddresskey = "NullsErc20TestToken"
   const contractName = "NullsERC20Token"
   return await connectOrDeployContract(contractName, contractAddresskey)
 }
 
-async function mainCore(testC20) {
-  const contractAddresskey = "worldCore_address"
+async function mainCore (testC20) {
+  const contractAddresskey = "NullsWorldCore"
   const contractName = "NullsWorldCore"
 
-  let obj = await connectOrDeployContract(contractName, contractAddresskey , rwaJsonData[prefixKey]["router_address"] )
+  let obj = await connectOrDeployContract(contractName, contractAddresskey, rwaJsonData[prefixKey]["ZKRandomCore"])
   let core = obj.contract
   let flag = obj.flag
 
@@ -147,46 +150,49 @@ async function mainCore(testC20) {
     txhash = await core.registerGame(gameName, newProjectMinFee)
     await txhash.wait()
   }
+  ret = await core.addNewItemWhiteList(whiteAddr)
+  await ret.wait()
+
   return obj;
 }
 
-async function TransferProxy() {
+async function TransferProxy () {
   const contractAddresskey = "TransferProxy";
   const contractName = "TransferProxy";
-  let obj = await connectOrDeployContract(contractName, contractAddresskey )
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
   return obj
 }
 
-async function eggManager(core, petT, eggT, testC20, transferProx){
+async function eggManager (core, petT, eggT, testC20, transferProx) {
 
-  const contractAddresskey = "EggManager_address"
+  const contractAddresskey = "NullsEggManager"
   const contractName = "NullsEggManager"
-  
-  let obj = await connectOrDeployContract(contractName, contractAddresskey )
+
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
   let eggmanager = obj.contract;
 
   if (petT.falg || obj.flag) {
     // 配置petToken operator
     await petT.contract.modifyOper(eggmanager.address)
   }
-  
+
   if (eggT.falg || obj.flag) {
     // 配置eggToken operator
     await eggT.contract.modifierOper(eggmanager.address)
   }
-  
+
   if (core.flag || obj.flag) {
     // 配置newItem白名单权限
     let txAddWhiteList = await core.contract.addNewItemWhiteList(eggmanager.address)
     await txAddWhiteList.wait()
   }
-  
+
   if (obj.flag || petT.flag || eggT.flag) {
     // 设置eggToken和petToken
     ret = await eggmanager.setPetTokenAndEggToken(eggT.contract.address, petT.contract.address)
     await ret.wait()
   }
-  
+
   // 设置购买宠物币种和金额
   ret = await eggmanager.setBuyToken(testC20.contract.address, eggPrice);
   await ret.wait()
@@ -206,11 +212,14 @@ async function eggManager(core, petT, eggT, testC20, transferProx){
 
   // 设置转账交易代理
   // if (obj.flag || transferProx.flag) {
-    // 设置代理
-    await eggmanager.setTransferProxy(transferProx.contract.address)
-    // 配置白名单
-    await transferProx.contract.addWhiteList(eggmanager.address)
+  // 设置代理
+  await eggmanager.setTransferProxy(transferProx.contract.address)
+  // 配置白名单
+  await transferProx.contract.addWhiteList(eggmanager.address)
   // }
+
+  ret = await eggmanager.addWhiteList(whiteAddr)
+  await ret.wait()
 
   let sceneId = await eggmanager.getSceneId()
   console.log("eggmanager sceneId = ", sceneId)
@@ -218,8 +227,8 @@ async function eggManager(core, petT, eggT, testC20, transferProx){
   return obj
 }
 
-async function petToken(nullsErc20TestToken, transferProx) {
-  const contractAddresskey = "petToken_address"
+async function petToken (nullsErc20TestToken, transferProx) {
+  const contractAddresskey = "NullsPetToken"
   const contractName = "NullsPetToken"
   obj = await connectOrDeployContract(contractName, contractAddresskey)
   ret = await obj.contract.setSupportedToken(rwaJsonData[prefixKey]["USDT"], true, petTransferFee)
@@ -237,14 +246,14 @@ async function petToken(nullsErc20TestToken, transferProx) {
   return obj
 }
 
-async function eggToken() {
-  const contractAddresskey = "EggToken_address"
+async function eggToken () {
+  const contractAddresskey = "NullsEggToken"
   const contractName = "NullsEggToken"
   return await connectOrDeployContract(contractName, contractAddresskey)
 }
 
-async function ringManager(core, testC20, petT, transferProx) {
-  const contractAddresskey = "RingManager_address"
+async function ringManager (core, testC20, petT, transferProx) {
+  const contractAddresskey = "NullsRankManager"
   const contractName = "NullsRankManager"
   let obj = await connectOrDeployContract(contractName, contractAddresskey)
   let ring = obj.contract
@@ -273,12 +282,12 @@ async function ringManager(core, testC20, petT, transferProx) {
     // 配置白名单
     await transferProx.contract.addWhiteList(ring.address)
   }
-  
+
   if (obj.flag || petT.flag) {
     // 配置pet合约地址
     let txHashSetPetToken = await ring.setPetToken(petT.contract.address)
     let waitRet = await txHashSetPetToken.wait()
-  }  
+  }
 
   // 配置普通宠物休息时间
   await ring.setRestTime(generalPetRestTime)
@@ -290,17 +299,17 @@ async function ringManager(core, testC20, petT, transferProx) {
 }
 
 // 跟随nulls发行的代币，主要用途是锁仓获取奖池奖金，获取方式是通过活动获取
-async function nullsToken() {
+async function nullsToken () {
   const contractAddresskey = "NullsMainToken"
   const contractName = "NullsWorldToken"
-  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+  let obj = await connectOrDeployContract(contractName, contractAddresskey, 21000000000000)
   // obj.contract.setBeginTime()
   const [owner] = await hre.ethers.getSigners()
   await obj.contract.modifierOper(owner.address)
   return obj
 }
 
-async function invite() {
+async function invite () {
   const contractAddresskey = "NullsInvite"
   const contractName = "NullsInvite"
   let obj = await connectOrDeployContract(contractName, contractAddresskey)
@@ -312,16 +321,16 @@ async function invite() {
   return obj
 }
 
-async function promotion(nullsInvite, eggM, mainToken) {
+async function promotion (nullsInvite, eggM, mainToken) {
   const contractAddresskey = "NullsPromotion"
   const contractName = "NullsPromotion"
   let obj = await connectOrDeployContract(contractName, contractAddresskey)
 
   // if (eggM.flag || obj.flag) {
-    // 对购买蛋操作设置后置处理器
-    ret = await eggM.contract.setAfterProccess(obj.contract.address)
-    // ret = await eggM.contract.setAfterProccess("0x0000000000000000000000000000000000000000")
-    await ret.wait()
+  // 对购买蛋操作设置后置处理器
+  ret = await eggM.contract.setAfterProccess(obj.contract.address)
+  // ret = await eggM.contract.setAfterProccess("0x0000000000000000000000000000000000000000")
+  await ret.wait()
 
   // }
 
@@ -343,7 +352,7 @@ async function promotion(nullsInvite, eggM, mainToken) {
   await ret.wait()
 }
 
-async function bigPrizePool(c20, eggM) {
+async function bigPrizePool (c20, eggM) {
   const contractAddresskey = "NullsBigPrizePool"
   const contractName = "NullsBigPrizePool"
 

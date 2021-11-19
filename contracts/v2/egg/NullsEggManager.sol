@@ -28,6 +28,10 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         bool isOk;
     }
 
+    struct OpenEggRecord {
+        bool isAvailable;
+        uint amount;
+    }
 
     address EggToken ;
     address PetToken ;
@@ -50,6 +54,8 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
 
     mapping(bytes32 => bytes32) KeyToHv;
 
+    mapping(bytes32 => OpenEggRecord) OpenEggRecords;
+
     address BuyAfterAddress ;   //购买后的处理函数
 
     bool IsOk = true;
@@ -62,6 +68,18 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
     // 每开到一个普通宠物，该数值+1
     // 当开出擂台宠物时，此值清零
     mapping(address => uint16) public GodPetProbability;
+
+    // newItem白名单
+    mapping(address => bool) WhiteList;
+
+    function addWhiteList(address user) external onlyOwner {
+        WhiteList[user] = true;
+    }
+ 
+    modifier onlyOwnerOrWhiteList() {
+        require(owner() == _msgSender() || WhiteList[_msgSender()] == true, "Ownable: caller is not the owner or white list");
+        _;
+    }
 
     modifier isFromProxy() {
         require(msg.sender == Proxy, "NullsEggManager/Is not from proxy.");
@@ -134,16 +152,33 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         // 防止重复消费data
         require(dataInfo.isOk, "NullsEggManager/Do not repeat consumption.");
 
-        // IERC20 egg = IERC20( EggToken ) ;
-        for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
-            _openOne( i , dataInfo.itemId , dataInfo.player , rv, key) ;
-        }
+        if (OpenEggRecords[key].isAvailable) {
+            for(uint8 i = 0 ; i < dataInfo.total ; i ++ ) {
+                _openOne( i , dataInfo.itemId , dataInfo.player , rv, key) ;
+            }
+        }       
  
         // isOk标志设置为false
         dataInfo.isOk = false;
         DataInfos[hv] = dataInfo;
         
         return true;
+    }
+
+    function _getProbability() internal view returns(uint8) {
+        if (GodPetCount < 8) {
+            return 8;
+        } else if(GodPetCount < 16) {
+            return 16;
+        } else if(GodPetCount < 32) {
+            return 32;
+        } else if(GodPetCount < 64) {
+            return 64;
+        } else if(GodPetCount < 128) {
+            return 128;
+        } else {
+            return 0;
+        }
     }
 
     function _openOne( uint8 index , uint item , address player , bytes32 rv, bytes32 requestKey) internal returns ( uint petid ){
@@ -155,11 +190,11 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             rv 
         )) ;
 
-        if (GodPetCount < 32) {
-            // 开出godPet概率为1/32
-            if (uint8(bytes1(val)) >= 248) {
-                val |= 0xff00000000000000000000000000000000000000000000000000000000000000;
-            }
+        uint8 probability = _getProbability();
+
+        if (probability != 0 && uint8(bytes1(val)) % probability == 0) {
+            // 发擂台宠物
+            val |= 0xff00000000000000000000000000000000000000000000000000000000000000;
         }
 
         if (GodPetProbabilityValue != 0) {
@@ -183,7 +218,7 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         emit NewPet(petid, index , item, player, val , rv, requestKey);
     }
 
-    function registerItem(address pubkey) external override onlyOwner {
+    function registerItem(address pubkey) external override onlyOwnerOrWhiteList {
         uint itemId = INullsWorldCore(Proxy).newItem(SceneId, pubkey, 0);
 
         emit NewEggItem(itemId, pubkey);
@@ -246,6 +281,11 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
         // 调用预注册方法
         bytes32 requestKey = INullsWorldCore(Proxy).getNonce(itemId, hv);
 
+        OpenEggRecords[requestKey] = OpenEggRecord({
+            isAvailable: true,
+            amount: total
+        });
+
         KeyToHv[requestKey] = hv; 
 
         // 存储
@@ -255,7 +295,18 @@ contract NullsEggManager is INullsEggManager, IZKRandomCallback, Ownable {
             player: msg.sender,
             isOk: true
         });
-        emit EggNewNonce(itemId, hv, requestKey, deadline);
-        emit OpenEggBefore(msg.sender, total);
+        emit EggNewNonce(msg.sender, total,itemId, hv, requestKey, deadline);
+    }
+
+    function refund(bytes32 requestKey) external {
+        bytes32 hv = KeyToHv[requestKey]; 
+        DataInfo memory info = DataInfos[hv];
+        require(msg.sender == info.player && info.isOk, "NullsEggManager/Illegal operation");
+        require(!INullsWorldCore(Proxy).checkRequestKey(requestKey), "NullsEggManager/Refund time is not due");
+        OpenEggRecord storage openEggRecord = OpenEggRecords[requestKey];
+        require(openEggRecord.isAvailable, "NullsEggManager/No refund");
+        IERC20(EggToken).transfer(msg.sender, openEggRecord.amount);
+        openEggRecord.isAvailable = false;
+        emit RefundEgg(msg.sender, requestKey, openEggRecord.amount);
     }
 }
