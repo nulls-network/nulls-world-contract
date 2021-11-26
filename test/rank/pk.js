@@ -23,15 +23,14 @@ async function main () {
   ret = await tokenContract.approve(transferProxy, 40 * pkFee)
   await ret.wait()
 
-  ret1 = batchPk1(rankContract, 34)
-  ret2 = batchPk2(rankContract, 35)
-
+  ret1 = batchPk1(rankContract, 64)
+  // ret2 = batchPk2(rankContract, 35)
   await ret1;
-  await ret2;
+  // await ret2;
 }
 
-async function batchPk1(rankContract, itemId) {
-  for (let i = 14; i < 22; i++) {
+async function batchPk1 (rankContract, itemId) {
+  for (let i = 10; i < 20; i++) {
     try {
       let time = Math.floor((new Date().getTime() + 3600 * 1000) / 1000)
       ret = await rankContract.pk(itemId, i, time)
@@ -43,7 +42,13 @@ async function batchPk1(rankContract, itemId) {
   }
 }
 
-async function batchPk2(rankContract, itemId) {
+async function pk (rankContract, itemId, petId) {
+  let time = Math.floor((new Date().getTime() + 3600 * 1000) / 1000)
+  ret = await rankContract.pk(itemId, petId, time)
+  await ret.wait()
+}
+
+async function batchPk2 (rankContract, itemId) {
   for (let i = 70; i < 78; i++) {
     try {
       let time = Math.floor((new Date().getTime() + 3600 * 1000) / 1000)

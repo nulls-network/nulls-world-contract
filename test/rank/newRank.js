@@ -14,7 +14,7 @@ let contractAddr = "";
 const nullsErc20TokenContractName = "NullsERC20Token";
 let nullsERC20Token = "";
 let transferProxy = "";
-
+let rewardRatio = 60;
 async function createRing () {
   await readConfig()
   let tokenContract = await connectContract(nullsErc20TokenContractName, nullsERC20Token);
@@ -24,10 +24,10 @@ async function createRing () {
   //创建擂台 
   let ringManager_contrcat = await connectContract(contractName, contractAddr);
 
-  let petId = 25;
+  let petId = 7;
   let multiple = 5;
 
-  await ringManager_contrcat.createRank(petId, nullsERC20Token, multiple);
+  await ringManager_contrcat.createRank(petId, nullsERC20Token, multiple, rewardRatio);
 }
 
 async function readConfig () {

@@ -26,6 +26,10 @@ interface INullsRankManager {
         uint gameOperatorBonus;
         // 擂台被挑战次数
         uint total;
+        // 奖励比例
+        uint8 rewardRatio;
+        // 最后活跃时间
+        uint lastActivityTime;
     }
     
     // 新擂台: itemId、创建擂台的宠物、擂台支付token、初始资金、创建者、倍率、创建时的公钥
@@ -36,7 +40,8 @@ interface INullsRankManager {
         uint initialCapital, 
         address creater, 
         uint8 multiple, 
-        address publicKey
+        address publicKey,
+        uint8 rewardRatio
     );
 
     // 擂台状态更新: itemId、挑战者宠物id、休息结束时间、挑战者、擂台奖池余额、random、挑战者输赢、奖池变化值、reuestKey、币种
@@ -77,6 +82,13 @@ interface INullsRankManager {
     event RewardToGameOperator(
         address user,
         uint amount
+    );
+
+    event RankClosed(
+        uint itemId,
+        address user,
+        uint rewardToOwner,
+        uint rewardToGameOperator
     );
 
     // --- public mapping的view方法
@@ -164,7 +176,8 @@ interface INullsRankManager {
     function createRank(
         uint petId, 
         address token,
-        uint8 multiple
+        uint8 multiple,
+        uint8 rewardRatio
     ) external returns(uint256 itemId);
 
     /*

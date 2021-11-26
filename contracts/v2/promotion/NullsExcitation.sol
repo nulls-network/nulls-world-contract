@@ -49,31 +49,27 @@ contract NullsExcitation is Ownable, INullsAfterBuyEgg, INullsAfterPk {
         RewardValue[3] = three ; 
     }
 
-    function _doReward(address buyer, address current, uint amount, uint8 index) internal {
+    function _doReward(address buyer, address current, uint amount, uint8 index, uint8 _type) internal {
         if( current == address(0) || index >=4 ){
             return ;
         }
         (,,,address superior,bool isPartner) = InviteContract.getInviteStatistics( current );
         if (index == 0 || index == 1 || isPartner) {
             uint score = amount * RewardValue[index];
-            NwtToken.incrDayScore(current,score);
+            NwtToken.incrDayScore(current,score, _type, index);
         }
         index++;
-        _doReward(buyer, superior, amount, index);
-    }
-
-    function doAfterIdo(address user, uint score) external onlyWhiteList {
-        NwtToken.incrDayScore(user, score);
+        _doReward(buyer, superior, amount, index, _type);
     }
 
     // When buying eggs
     function doAfter(address buyer, uint total , address , uint amount) external override 
         updateStatistics( buyer , total ) onlyWhiteList {
-        _doReward(buyer, buyer, amount, 0);
+        _doReward(buyer, buyer, amount, 0, 0);
     }
 
     // When participating in pk
     function doAfterPk(address user, address, uint payAmount ) external override onlyWhiteList {
-        _doReward(user, user, payAmount, 0);
+        _doReward(user, user, payAmount, 0, 1);
     }
 }

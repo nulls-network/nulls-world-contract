@@ -9,8 +9,7 @@ contract NullsWorldToken is ERC20 {
     address Owner ;
     address Oper ;
     uint BeginTime = 0 ;
-    uint Free4day = 3000 ;
-    uint DayIndex = 0 ;
+    uint Free4day = 3000000000;
 
 
     uint8 Decimals = 6;
@@ -24,14 +23,17 @@ contract NullsWorldToken is ERC20 {
     struct Report {
         uint score ;    //总得分
         uint total ;    //总人数
-        uint used ;
     }
+
+    address public NullsExcitation;
 
     mapping( uint => mapping( address => Rank) ) Ranks ;
     mapping( uint => Report ) Reports ;
+    mapping( address => uint ) public UserCanWithdraw;
+    mapping( address => uint ) public UserLastUpdateDay;
 
-    event IncrDayScore(address player , uint incr , uint balance , uint total ) ;
-    event ReceiveToken( address player , uint dayIndex , uint val );
+    event IncrDayScore(address player , uint dayIndex, uint incr , uint balance , uint total , uint8 _type, uint8 index);
+    event ReceiveToken( address player , uint val );
 
     modifier onlyOwner() {
         require( msg.sender == Owner , "NullsWorldToken/No role." );
@@ -43,18 +45,40 @@ contract NullsWorldToken is ERC20 {
         _ ;
     }
 
+    modifier onlyNullsExcitation() {
+        require( msg.sender == NullsExcitation , "NullsWorldToken/No nulls excitation role.");
+        _ ;
+    }
+
     function decimals() public view override returns (uint8) {
         return Decimals;
     }
 
-    modifier updateDayIndex() {
-        DayIndex = _getDayIndex();
-        _ ;
+    modifier updateUserCanWithdraw(address player) {
+      uint dayIndex = getDayIndex();
+      uint lastDayIndex = UserLastUpdateDay[player];
+      if(dayIndex != lastDayIndex) {
+          Rank storage oldRank = Ranks[ lastDayIndex ][player] ;
+          Report memory oldReport = Reports[ lastDayIndex ] ;
+          if (oldRank.score > 0 && oldRank.score > oldRank.used) {
+              uint v = oldRank.score - oldRank.used ;
+              uint tmpFree4day = Free4day * 1e10 * v;
+              oldRank.used = oldRank.used + v ;
+              UserCanWithdraw[player] += ( tmpFree4day / oldReport.score ) / 1e10;
+          }
+          UserLastUpdateDay[player] = dayIndex;
+      }
+      _;
     }
 
     constructor(uint256 maxSupply_) ERC20("Nulls.World Token ","NWT") {
         Owner = msg.sender ;
+        Oper = msg.sender;
         MaxSupply = maxSupply_;
+    }
+
+    function setNullsExcitation(address addr) external onlyOper {
+        NullsExcitation = addr;
     }
 
     function mint( address player , uint total ) external onlyOper {
@@ -69,7 +93,7 @@ contract NullsWorldToken is ERC20 {
         Oper = oper ;
     }
 
-    function _getDayIndex() public view returns ( uint idx ) {
+    function getDayIndex() public view returns ( uint idx ) {
         idx = ( block.timestamp - BeginTime ) / ( 1 days ) ;
     }
 
@@ -77,20 +101,21 @@ contract NullsWorldToken is ERC20 {
         BeginTime = ts ;
     }
 
-    function incrDayScore(address player,uint score ) external onlyOper updateDayIndex {
+    function incrDayScore(address player,uint score, uint8 _type, uint8 index) external onlyNullsExcitation updateUserCanWithdraw(player) {
         uint tv = 0 ;
-        uint dayIndex = _getDayIndex();
+        uint dayIndex = getDayIndex();
         Rank storage rank = Ranks[ dayIndex ][player] ;
+        Report storage report = Reports[ dayIndex ] ;
+
+        
         if( rank.score == 0 ) {
             tv = 1 ;
         }
         rank.score = rank.score + score ;
-
-        Report storage report = Reports[ dayIndex ] ;
         report.score = report.score + score ;
         report.total = report.total + tv ;
 
-        emit IncrDayScore(player, score , rank.score , report.score );
+        emit IncrDayScore(player, dayIndex, score , rank.score , report.score,  _type, index);
     }
 
     function _beforeTokenTransfer(
@@ -104,23 +129,19 @@ contract NullsWorldToken is ERC20 {
         }
     }
 
-    function receiveToken(uint dayIndex ) external updateDayIndex {
-        address player = msg.sender ;
-        require( dayIndex < _getDayIndex() , "NullsWorldToken/Must be receive by next day." ) ;
-        Rank storage rank = Ranks[dayIndex][player] ;
-        require( rank.score > 0 , "NullsWorldToken/No score to use." ) ;
-        require( rank.score > rank.used , "NullsWorldToken/No score to use." ) ;
-        uint v = rank.score - rank.used ;       // 
-        Report storage report = Reports[dayIndex] ;
-        // No need to use safemath.  
-        // report.total > 0 
-        uint tmpFree4day = Free4day * decimals() * 1e10 * v;
-        uint tv = ( tmpFree4day / report.score ) / 1e10 ;
-        _mint( player , tv );
-        rank.used = rank.used + v ;
-        report.used = report.used + tv ;
-
-        emit ReceiveToken( player, dayIndex, tv );
+    function getDayScore(address player, uint dayIndex) public view returns(uint totalScore, uint palyNum, uint playerScore) {
+        Report memory report = Reports[dayIndex] ;
+        totalScore = report.score;
+        palyNum = report.total;
+        Rank memory rank = Ranks[ dayIndex ][player] ;
+        playerScore = rank.score;
     }
 
+    function receiveToken() external updateUserCanWithdraw(msg.sender) {
+        uint amount = UserCanWithdraw[msg.sender];
+        require(amount > 0, "NullsWorldToken/The withdrawal amount is 0");
+        _mint( msg.sender , amount);
+        UserCanWithdraw[msg.sender] = 0;
+        emit ReceiveToken( msg.sender, amount );
+    }
 }

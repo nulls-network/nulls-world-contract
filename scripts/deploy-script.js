@@ -51,7 +51,17 @@ const bigPoolStartTime = (new Date('2021-11-8 08:00:00').getTime()) / 1000
 
 let rwaJsonData;
 
-const whiteAddr = "0x7eaC202adA748510e7C54271F1fE61cF4aC574E7"
+// 提交随机数的白名单
+const whiteAddr = "0xB1877E668f3827FF8301EfEAe6aB7aB081d75f11";
+
+
+// 积分发放
+const exSelf = 8
+const exOne = 4
+const exTwo = 2
+const exThree = 1
+
+const ExcitationBeginTime = (new Date('2021-11-25 08:00:00').getTime()) / 1000
 
 async function main () {
 
@@ -67,12 +77,13 @@ async function main () {
 
   let eggM = await eggManager(core, petT, eggT, testC20, transferProx)
 
-  await ringManager(core, testC20, petT, transferProx)
+  let rankM = await ringManager(core, testC20, petT, transferProx)
 
   let mainToken = await nullsToken()
   await bigPrizePool(testC20, eggM)
   let nullsInvite = await invite()
-  await promotion(nullsInvite, eggM, mainToken)
+  // await promotion(nullsInvite, eggM, mainToken)
+  await excitation(nullsInvite, eggM, rankM, mainToken)
 
   console.log(rwaJsonData)
   writeJosnToConfigFile()
@@ -295,7 +306,7 @@ async function ringManager (core, testC20, petT, transferProx) {
   let sceneId = await ring.getSceneId()
   console.log("ringManager sceneId = ", sceneId)
 
-  return ring
+  return obj
 }
 
 // 跟随nulls发行的代币，主要用途是锁仓获取奖池奖金，获取方式是通过活动获取
@@ -350,6 +361,45 @@ async function promotion (nullsInvite, eggM, mainToken) {
   await ret.wait()
   ret = await obj.contract.setRewardValue(buyer, one, two, three)
   await ret.wait()
+}
+
+async function excitation (nullsInvite, eggM, rankM, mainToken) {
+  const contractAddresskey = "NullsExcitation"
+  const contractName = "NullsExcitation"
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+
+  // 对购买蛋操作设置后置处理器
+  ret = await eggM.contract.setAfterProccess(obj.contract.address)
+  await ret.wait()
+
+  // 对pk操作设置后置处理器
+  ret = await rankM.contract.setAfterProccess(obj.contract.address)
+  await ret.wait()
+
+  if (nullsInvite.flag || obj.flag) {
+    // 设置invite的活动合约
+    await nullsInvite.contract.setPromotionContract(obj.contract.address)
+  }
+
+  // 设置白名单
+  ret = await obj.contract.addWhiteList(eggM.contract.address)
+  await ret.wait()
+
+  ret = await obj.contract.addWhiteList(rankM.contract.address)
+  await ret.wait()
+
+  ret = await obj.contract.setBaseInfo(nullsInvite.contract.address, mainToken.contract.address)
+  await ret.wait()
+
+  ret = await obj.contract.setRewardValue(exSelf, exOne, exTwo, exThree);
+  await ret.wait()
+
+  ret = await mainToken.contract.setNullsExcitation(obj.contract.address)
+  await ret.wait()
+
+  ret = await mainToken.contract.setBeginTime(ExcitationBeginTime)
+  await ret.wait()
+
 }
 
 async function bigPrizePool (c20, eggM) {

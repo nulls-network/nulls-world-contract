@@ -45,6 +45,8 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
     // 普通宠物休息时间（秒）
     uint GeneralPetRestTime = 300;
 
+    uint public RankDeadline = 600;
+
     mapping(address => Counters.Counter) Nonces;
  
     // 支持的token列表
@@ -122,6 +124,10 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         PetToken = petToken ;
     }
 
+    function setRankDeadline(uint value) external onlyOwner {
+        RankDeadline = value;
+    }
+
     function nonces(address player) external override view returns (uint256) {
         return Nonces[player].current();
     }
@@ -160,8 +166,11 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
     function createRank(
         uint petId, 
         address token,
-        uint8 multiple
+        uint8 multiple,
+        uint8 rewardRatio
     ) external override returns(uint256 itemId) {
+
+            require(rewardRatio >= 50 && rewardRatio <= 100, "NullsRankManager/The rewardRatio must be between 50 and 100");
 
             // 是否在守擂中
             bool isLocked = PetLocked[petId] ;
@@ -198,11 +207,13 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
                 bonusPool: initialCapital,
                 ownerBonus: 0,
                 gameOperatorBonus: 0,
-                total: 0
+                total: 0,
+                rewardRatio: rewardRatio,
+                lastActivityTime: block.timestamp
             });
 
             PetLocked[petId] = true ;            
-            emit NewRank(itemId, petId, token, initialCapital, msg.sender, multiple, address(0));
+            emit NewRank(itemId, petId, token, initialCapital, msg.sender, multiple, address(0), rewardRatio);
     }
 
     function getRewardRatio(uint total) internal pure returns(uint8 RankPool, uint8 RankOwner, uint8 gameOperator) {
@@ -275,12 +286,12 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
                 emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, 0, rv, true, rank.bonusPool, requestKey, rank.token);
                 rank.bonusPool = 0;     
             } else {
-                // 只能赢走一半
-                uint poolBalance = rank.bonusPool / 2;
+                // 只能赢走一部分
+                uint rewardValue = rank.bonusPool * rank.rewardRatio / 100;
                 // 给挑战者转账
-                IERC20( rank.token ).transfer( player, poolBalance );
-                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, poolBalance , rv, true , poolBalance, requestKey, rank.token);
-                rank.bonusPool = poolBalance;
+                IERC20( rank.token ).transfer( player, rewardValue );
+                emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, rank.bonusPool - rewardValue , rv, true , rewardValue, requestKey, rank.token);
+                rank.bonusPool = rank.bonusPool - rewardValue;
             }
         } else {
             // 庄家获胜
@@ -319,7 +330,7 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
 
         // 扣款
         // 计算挑战金(初始资金/倍率)
-        Rank memory rank = Ranks[itemId];
+        Rank storage rank = Ranks[itemId];
 
         require(rank.bonusPool > 0, "NullsRankManager/The rank is closed");
         uint challengeCapital = rank.ticketAmt;
@@ -360,7 +371,32 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
         });
 
         RankQueueLen[itemId] += 1;
+        rank.lastActivityTime = block.timestamp;
+
         emit RankNewNonce(itemId, challengerPetId, hv, requestKey, deadline, msg.sender);
+    }
+
+    function closeRank(uint itemId) external {
+        Rank storage rank = Ranks[itemId];
+
+        require(rank.lastActivityTime + RankDeadline < block.timestamp, "NullsRankManager/Closing time is not reached");
+        require(rank.bonusPool > 0, "NullsRankManager/Closed");
+        require(INullsPetToken( PetToken ).ownerOf(rank.petId) == msg.sender, "NullsRankManager/Pet id is illegal");
+        require(rank.total >= 10, "NullsRankManager/Not enough challenges");
+
+        // send to rank owner
+        IERC20( rank.token ).transfer( msg.sender, rank.ownerBonus + rank.bonusPool);
+        rank.ownerBonus = 0;
+        rank.bonusPool = 0;
+
+        IERC20( rank.token ).transfer( owner() , rank.gameOperatorBonus);
+        rank.gameOperatorBonus = 0;
+
+        // 解锁守擂宠物
+        PetLocked[rank.petId] = false ;
+
+        emit RankClosed(itemId, msg.sender, rank.ownerBonus + rank.bonusPool, rank.gameOperatorBonus);
+
     }
 
     function refund(bytes32 requestKey) external {

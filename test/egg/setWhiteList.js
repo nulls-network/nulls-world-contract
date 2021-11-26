@@ -2,28 +2,17 @@ const hre = require("hardhat")
 const fs = require("fs");
 
 // 买蛋测试脚本,使用ht-testnet-user1测试
-// npx hardhat run test/egg/openEgg.js --network ht-testnet-user1
+// npx hardhat run test/egg/setWhiteList.js --network ht-testnet
 
 const contractName = "NullsEggManager";
 let contractAddr = "";
+const whiteAddr = "0xe1bB8Ab4CA18d18049eAFe8741Fe49bD0c65f956";
 
-let transferProxy = "";
-
-let eggTokenAddr = "";
-const eggTokenContractName = "NullsEggToken";
-const openEggNumber = 20;
 async function main () {
+  await readConfig();
+  contract = await connectContract(contractName, contractAddr)
 
-  await readConfig()
-  eggContract = await connectContract(contractName, contractAddr)
-
-  // 授权
-  tokenContract = await connectContract(eggTokenContractName, eggTokenAddr)
-  ret = await tokenContract.approve(transferProxy, openEggNumber)
-  await ret.wait()
-
-  let time = Math.floor((new Date().getTime() + 3600 * 1000) / 1000)
-  ret = await eggContract.openMultiple(openEggNumber, 63, time)
+  ret = await contract.addWhiteList(whiteAddr)
   await ret.wait()
 
 }
@@ -33,8 +22,6 @@ async function readConfig () {
   let rawdata = fs.readFileSync(configFile)
   rwaJsonData = JSON.parse(rawdata)
   contractAddr = rwaJsonData['contrat_address']['NullsEggManager'];
-  transferProxy = rwaJsonData['contrat_address']['TransferProxy'];
-  eggTokenAddr = rwaJsonData['contrat_address']['NullsEggToken'];
 }
 
 async function connectContract (contractName, contractAddress) {
