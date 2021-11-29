@@ -13,7 +13,8 @@
         "NullsMainToken": "0xb98dE27dE1Af5710e2f710C05eCCa92F684197b5",
         "NullsBigPrizePool": "0xe4aaD0DB99Fd997F1a58aC7c6AF9296962274a79",
         "TransferProxy": "0x3Cc1Ad4766c8b4D8a21B233Bae4Ef55c30139Ebd",
-        "NullsExcitation": "0x0AA3FCc05A05a4521a5e41A4069836FFaeF66685"
+        "NullsExcitation": "0x0AA3FCc05A05a4521a5e41A4069836FFaeF66685",
+        "LPStaking": "0x88470152a25001fD92bf1b4aaD3A15E261C0378d"
     },
     "netword": "https://http-testnet.huobichain.com",
     "contract_deploy_private": "0xb0acc12ed1ff644b0c0b5f823870ae032ea9d32a8ff7f0de5390787664adfeff",

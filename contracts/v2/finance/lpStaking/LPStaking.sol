@@ -1,4 +1,6 @@
 //SPDX-License-Identifier: Unlicense
+pragma solidity ^0.8.0;
+
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -33,6 +35,19 @@ contract LPStaking is Ownable, ReentrancyGuard {
 
     // }
 
+    function setRewardRate(uint256 rate) external onlyOwner {
+        RewardRate = rate / 1 days;
+    }
+
+    function setBaseInfo(address stakingToken, address rewardToken) external onlyOwner {
+        StakingToken = stakingToken;
+        RewardsToken = rewardToken;
+    }
+
+    function setPeriodFinish(uint periodFinish) external onlyOwner {
+        PeriodFinish = periodFinish;
+    }
+
     function stake(uint256 amount) external nonReentrant updateReward(msg.sender) {
         require(amount > 0, "cannot stake 0");
         TotalSupply += amount;
@@ -51,11 +66,10 @@ contract LPStaking is Ownable, ReentrancyGuard {
 
     function getReward() public nonReentrant updateReward(msg.sender) {
         uint256 reward = Rewards[msg.sender];
-        if (reward > 0) {
-            Rewards[msg.sender] = 0;
-            IERC20(RewardsToken).transfer(msg.sender, reward);
-            emit RewardPaid(msg.sender, reward);
-        }
+        require(reward > 0, "cannot reward 0");
+        Rewards[msg.sender] = 0;
+        IERC20(RewardsToken).transfer(msg.sender, reward);
+        emit RewardPaid(msg.sender, reward);
     }
 
     function exit() external {
@@ -68,13 +82,18 @@ contract LPStaking is Ownable, ReentrancyGuard {
     }
 
     function proportion(address account) public view returns (uint256) {
+        if (TotalSupply == 0) {
+            return 0;
+        }
         return (BalanceOf[account] * 1e18) / TotalSupply;
     }
 
     modifier updateReward(address account) {
-        uint256 blanace = BalanceOf[account];
-        uint256 rate = lastTimeReward() - Received[account] * RewardRate;
-        Rewards[account] += (rate * proportion(account)) / 1e18;
+        if (BalanceOf[account] > 0) {
+            uint256 rate = (lastTimeReward() - Received[account]) * RewardRate;
+            Rewards[account] += (rate * proportion(account)) / 1e18;
+        }
+        Received[account] = lastTimeReward();
         _;
     }
 }

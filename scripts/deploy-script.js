@@ -67,25 +67,27 @@ async function main () {
 
   readJsonFromFile()
 
-  // 用于测试期间支付购买宠物、pk的token
-  let testC20 = await c20();
-  let transferProx = await TransferProxy()
-  let eggT = await eggToken()
-  let petT = await petToken(testC20, transferProx)
+  // // 用于测试期间支付购买宠物、pk的token
+  // let testC20 = await c20();
+  // let transferProx = await TransferProxy()
+  // let eggT = await eggToken()
+  // let petT = await petToken(testC20, transferProx)
 
-  let core = await mainCore(testC20)
+  // let core = await mainCore(testC20)
 
-  let eggM = await eggManager(core, petT, eggT, testC20, transferProx)
+  // let eggM = await eggManager(core, petT, eggT, testC20, transferProx)
 
-  let rankM = await ringManager(core, testC20, petT, transferProx)
+  // let rankM = await ringManager(core, testC20, petT, transferProx)
 
   let mainToken = await nullsToken()
-  await bigPrizePool(testC20, eggM)
-  let nullsInvite = await invite()
-  // await promotion(nullsInvite, eggM, mainToken)
-  await excitation(nullsInvite, eggM, rankM, mainToken)
+  // await bigPrizePool(testC20, eggM)
+  // let nullsInvite = await invite()
+  // // await promotion(nullsInvite, eggM, mainToken)
+  // await excitation(nullsInvite, eggM, rankM, mainToken)
 
-  console.log(rwaJsonData)
+  // console.log(rwaJsonData)
+
+  await lpStaking(mainToken)
   writeJosnToConfigFile()
   console.log("完成!")
 }
@@ -415,6 +417,36 @@ async function bigPrizePool (c20, eggM) {
   if (obj.flag || eggM.flag) {
     await eggM.contract.setBigPrizePool(obj.contract.address)
   }
+}
+
+async function lpStaking (mainToken) {
+  const contractAddresskey = "LPStaking"
+  const contractName = "LPStaking"
+
+  const rewardRate = 13889
+
+  const mintValue = 120000000000;
+
+  const stakingToken = rwaJsonData[prefixKey]["NullsErc20TestToken"]
+  const rewardToken = rwaJsonData[prefixKey]["NullsMainToken"];
+
+  const periodFinish = new Date(Date.UTC(2022, 11 - 1, 8, 0, 0, 0)).getTime() / 1000
+
+  let obj = await connectOrDeployContract(contractName, contractAddresskey)
+  ret = await obj.contract.setRewardRate(rewardRate)
+  await ret.wait()
+
+  ret = await obj.contract.setBaseInfo(stakingToken, rewardToken)
+  await ret.wait()
+
+  ret = await obj.contract.setPeriodFinish(periodFinish)
+  await ret.wait()
+
+  if (obj.flag) {
+    ret = await mainToken.contract.mint(obj.contract.address, mintValue)
+  }
+
+  await ret.wait()
 }
 
 main()

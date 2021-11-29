@@ -8,8 +8,8 @@ contract NullsWorldToken is ERC20 {
 
     address Owner ;
     address Oper ;
-    uint BeginTime = 0 ;
-    uint Free4day = 3000000000;
+    uint public BeginTime = 0 ;
+    uint public Free1day = 3000000000;
 
 
     uint8 Decimals = 6;
@@ -62,9 +62,9 @@ contract NullsWorldToken is ERC20 {
           Report memory oldReport = Reports[ lastDayIndex ] ;
           if (oldRank.score > 0 && oldRank.score > oldRank.used) {
               uint v = oldRank.score - oldRank.used ;
-              uint tmpFree4day = Free4day * 1e10 * v;
+              uint tmpFree1day = Free1day * 1e10 * v;
               oldRank.used = oldRank.used + v ;
-              UserCanWithdraw[player] += ( tmpFree4day / oldReport.score ) / 1e10;
+              UserCanWithdraw[player] += ( tmpFree1day / oldReport.score ) / 1e10;
           }
           UserLastUpdateDay[player] = dayIndex;
       }
