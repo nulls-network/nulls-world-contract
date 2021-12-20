@@ -6,7 +6,7 @@ const fs = require("fs");
 
 const contractName = "NullsEggManager";
 let contractAddr = "";
-const whiteAddr = "0xe1bB8Ab4CA18d18049eAFe8741Fe49bD0c65f956";
+const whiteAddr = "0x7eaC202adA748510e7C54271F1fE61cF4aC574E7";
 
 async function main () {
   await readConfig();

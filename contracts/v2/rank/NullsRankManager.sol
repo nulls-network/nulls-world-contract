@@ -292,6 +292,10 @@ contract NullsRankManager is INullsRankManager, IZKRandomCallback, Ownable {
                 IERC20( rank.token ).transfer( player, rewardValue );
                 emit RankUpdate(itemId, challengerPetId, LastChallengeTime[challengerPetId], player, rank.bonusPool - rewardValue , rv, true , rewardValue, requestKey, rank.token);
                 rank.bonusPool = rank.bonusPool - rewardValue;
+                if(rank.bonusPool == 0) {
+                  // 解锁守擂宠物
+                  PetLocked[rank.petId] = false ;
+                }
             }
         } else {
             // 庄家获胜

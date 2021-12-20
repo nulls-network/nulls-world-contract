@@ -94,7 +94,7 @@ abstract contract NullWorldMarket is INullWorldMarket, Ownable {
         amount -= fee;
         //转手续费
         if (fee > 0) {
-            TransferProxy.erc20TransferFrom(sellInfo.token, msg.sender, owner(), amount);
+            TransferProxy.erc20TransferFrom(sellInfo.token, msg.sender, owner(), fee);
         }
 
         // 转token
